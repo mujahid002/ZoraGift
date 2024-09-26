@@ -1,3 +1,3 @@
-# ZoraGift
+ZoraGift
 
-Encode Club Livepeer AI Video Hackathon
+# Encode Club Livepeer AI Video Hackathon
