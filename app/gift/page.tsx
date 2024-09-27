@@ -13,6 +13,7 @@ const GiftForm: React.FC = () => {
     const [description, setDescription] = useState("");
     const [amount, setAmount] = useState<number>(0.001);
     const [date, setDate] = useState("");
+    const [isInstantGift, setIsInstantGift] = useState(false);
 
     // const [account, setAccount] = useState<User | null>(null);
     const [loadedAccount, setLoadedAccount] = useState(false);
@@ -52,12 +53,13 @@ const GiftForm: React.FC = () => {
             return;
         }
 
-        if (!date) {
-            alert("Date is required.");
+        if (!isInstantGift && !date) {
+            alert("Date is required for scheduled gifts.");
             return;
         }
 
-        const timestamp = new Date(date).getTime();
+        // Set timestamp to 0 if it's an instant gift
+        const timestamp = isInstantGift ? 0 : new Date(date).getTime();
 
         const formData = {
             walletAddress,
@@ -66,6 +68,7 @@ const GiftForm: React.FC = () => {
             description,
             amount,
             timestamp,
+            isInstantGift,
         };
 
         console.log(JSON.stringify(formData));
@@ -116,7 +119,9 @@ const GiftForm: React.FC = () => {
                                             value={giftName}
                                             onChange={(e) => setGiftName(e.target.value)}
                                             className="border border-input bg-background rounded-md px-3 py-2 mt-1"
-                                            placeholder="Enter gift name"
+                                            placeholder={
+                                                occasionType ? `${occasionType} Gift` : "Enter gift name"
+                                            }
                                         />
                                     </Form.Control>
                                 </div>
@@ -146,9 +151,7 @@ const GiftForm: React.FC = () => {
                         {/* Description */}
                         <Form.Field name="description">
                             <div className="flex flex-col">
-                                <Form.Label className="text-sm font-medium">
-                                    Description
-                                </Form.Label>
+                                <Form.Label className="text-sm font-medium">Description</Form.Label>
                                 <Form.Control asChild>
                                     <textarea
                                         value={description}
@@ -189,12 +192,37 @@ const GiftForm: React.FC = () => {
                                             type="date"
                                             value={date}
                                             onChange={(e) => setDate(e.target.value)}
-                                            className="border border-input bg-background rounded-md px-3 py-2 mt-1"
+                                            disabled={isInstantGift}
+                                            className={`border border-input bg-background rounded-md px-3 py-2 mt-1 ${isInstantGift ? "bg-gray-200 cursor-not-allowed" : ""
+                                                }`}
                                         />
                                     </Form.Control>
                                 </div>
                             </Form.Field>
                         </div>
+
+                        {/* Instant Gift Checkbox */}
+                        <Form.Field name="isInstantGift">
+                            <div className="flex items-center">
+                                <Form.Control asChild>
+                                    <input
+                                        type="checkbox"
+                                        checked={isInstantGift}
+                                        onChange={(e) => {
+                                            const checked = e.target.checked;
+                                            setIsInstantGift(checked);
+                                            if (checked) {
+                                                setDate(""); // Reset the date when instant gift is selected
+                                            }
+                                        }}
+                                        className="mr-2"
+                                    />
+                                </Form.Control>
+                                <Form.Label className="text-sm font-medium">
+                                    Send as Instant Gift
+                                </Form.Label>
+                            </div>
+                        </Form.Field>
 
                         <Form.Submit asChild>
                             <Button type="submit" className="w-full">
