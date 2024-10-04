@@ -1,25 +1,127 @@
 "use client";
 import { useEffect, useState } from "react";
-import { User } from "@/models/User";
-import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { ZORA_TESTNET_PARAMS } from '@/lib/networks';
 
-export default function RequireAuthPlaceholder() {
-  const [account, setAccount] = useState<User | null>(null);
 
-  const router = useRouter();
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
+export function RequireAuthPlaceholder() {
+  const [account, setAccount] = useState<string | null>(null);
+  const [isCorrectNetwork, setIsCorrectNetwork] = useState<boolean>(true);
+  const [networkError, setNetworkError] = useState<string | null>(null);
+
+
+  // Function to check if the wallet is connected
+  const checkWalletConnection = async () => {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const accounts = await window.ethereum.request({ method: "eth_accounts" });
+        if (accounts.length > 0) {
+          setAccount(accounts[0]);
+          checkNetwork(); // Check the network after getting the account
+        } else {
+          setAccount(null);
+        }
+      } catch (err) {
+        console.error("Error fetching accounts:", err);
+        setAccount(null);
+      }
+    } else {
+      console.log("MetaMask is not installed!");
+      setAccount(null);
+    }
+  };
+
+  // Function to check if the user is on Sepolia Testnet network
+  const checkNetwork = async () => {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const chainId = await window.ethereum.request({ method: "eth_chainId" });
+
+        // Check if the user is connected to Sepolia Testnet
+        if (chainId !== ZORA_TESTNET_PARAMS.chainId) {
+          setIsCorrectNetwork(false);
+          setNetworkError("Please switch to the Sepolia Testnet network.");
+        } else {
+          setIsCorrectNetwork(true);
+          setNetworkError(null);
+        }
+      } catch (err) {
+        console.error("Error checking network:", err);
+        setNetworkError("Error checking network.");
+      }
+    }
+  };
+
+  // Connect wallet function
+  const connectWallet = async () => {
+    if (typeof window.ethereum === "undefined") {
+      alert("Please install MetaMask or another Ethereum-compatible wallet!");
+      return;
+    }
+
+    try {
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      setAccount(accounts[0]); // Set the first connected account
+      checkNetwork(); // Check the network after connecting
+    } catch (err) {
+      console.error("Error connecting to wallet:", err);
+    }
+  };
+
+  // Prompt user to switch to Sepolia Testnet network
+  const switchToSepoliaTestnet = async () => {
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: ZORA_TESTNET_PARAMS.chainId }], // Sepolia Testnet chain ID
+      });
+      setIsCorrectNetwork(true);
+      setNetworkError(null);
+    } catch (err: any) {
+      if (err.code === 4902) {
+        // The network is not available in MetaMask, so we request to add it
+        try {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [ZORA_TESTNET_PARAMS],
+          });
+          // After adding the network, switch to it
+          await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: ZORA_TESTNET_PARAMS.chainId }],
+          });
+          setIsCorrectNetwork(true);
+          setNetworkError(null);
+        } catch (addError) {
+          console.error("Failed to add the Sepolia Testnet network:", addError);
+          alert("Failed to add the Sepolia Testnet network.");
+        }
+      } else {
+        console.error("Failed to switch network:", err);
+        alert("Failed to switch to the Sepolia Testnet network.");
+      }
+    }
+  };
 
   useEffect(() => {
-    const userJson = localStorage.getItem("user");
-    const user = userJson ? JSON.parse(userJson) : null;
-    setAccount(user);
-    if (account != null) {
-      router.push("/create");
-    }
-  }, [account]);
+    const initialize = async () => {
+      await checkNetwork();
+      await checkWalletConnection();
+    };
+    initialize();
+  }, []);
+  
+
   return (
     <div className="mx-4 flex p-24 shrink-0 items-center justify-center rounded-md border border-dashed">
       <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
-        <svg
+      <svg
           width="100px"
           height="100px"
           viewBox="0 0 24 24"
@@ -52,11 +154,24 @@ export default function RequireAuthPlaceholder() {
           />
         </svg>
 
-        <h3 className="mt-4 text-lg font-semibold ">Connect Account</h3>
+        <h3 className="mt-4 text-lg font-semibold">Connect Wallet</h3>
         <p className="mb-4 mt-2 text-sm text-muted-foreground m-2">
-          You are currently not signed in. Sign in or create an account. Click
-          the connect button to sign in or create an account.
+          {account
+            ? isCorrectNetwork
+              ? "Wallet connected!"
+              : networkError
+            : "You are currently not signed in. Please connect your wallet to continue."}
         </p>
+        {!account && (
+          <Button onClick={connectWallet} className="mt-4">
+            Connect Wallet
+          </Button>
+        )}
+        {account && !isCorrectNetwork && (
+          <Button onClick={switchToSepoliaTestnet} className="mt-4">
+            Switch to Sepolia Testnet
+          </Button>
+        )}
       </div>
     </div>
   );
