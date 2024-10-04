@@ -1,124 +1,145 @@
-// "use client";
-// import { useCallback, useState } from "react";
-// import { Button } from "@/components/ui/button";
-// import { Loader2 } from "lucide-react";
-// import { User } from "@/models/User";
-// import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 
-// interface Props {
-//   action: "Connect account" | "Disconnect";
-//   buttonVariant?: "ghost" | "outline" | "default";
-//   setAccount: React.Dispatch<React.SetStateAction<User | null>>;
-// }
+interface Props {
+  setAccount: React.Dispatch<React.SetStateAction<string | null>>;
+}
 
-// const ConnectButton = ({ action, setAccount, buttonVariant }: Props) => {
-//   const [disabled, setDisabled] = useState(false);
-//   const { magic } = useMagicContext();
-//   const { minipay } = useMinipay();
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
 
-//   const postConnect = async (account: string, email?: string) => {
-//     try {
-//       const res = await axios.post(
-//         `${process.env.NEXT_PUBLIC_BASE_URL}/api/users`,
-//         {
-//           web3Address: account,
-//           email,
-//         }
-//       );
+const ConnectButton: React.FC<Props> = ({ setAccount }) => {
+  const [disabled, setDisabled] = useState(false);
+  const [currentAccount, setCurrentAccount] = useState<string | null>(null);
 
-//       if (res.status === 200 || res.status === 201) {
-//         console.log("Connected to server");
-//         return res.data;
-//       } else {
-//         throw new Error(`${res.statusText}: ${res.data}`);
-//       }
-//     } catch (error: any) {
-//       console.error(error);
-//       if (typeof error === "string") return error;
-//       return error.toString();
-//     }
-//   };
+  // Sepolia Testnet network parameters
+  const ZORA_TESTNET_PARAMS = {
+    chainId: '0xaa36a7', // 11155111 in hex
+    chainName: 'Sepolia Testnet',
+    nativeCurrency: {
+      name: 'SepoliaETH',
+      symbol: 'ETH',
+      decimals: 18,
+    },
+    rpcUrls: ['https://rpc.sepolia.org'], // Update with the correct Sepolia RPC URL
+    blockExplorerUrls: ['https://sepolia.etherscan.io/'], // Update with the correct Sepolia explorer URL
+  };
 
-//   const connect = useCallback(async () => {
-//     try {
-//       setDisabled(true);
+  useEffect(() => {
+    if (typeof window.ethereum !== 'undefined') {
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+    }
 
-//       if (minipay) {
-//         console.log("Minipay", minipay);
-//         const data = await postConnect(minipay.address);
-//         const userdata = {
-//           ...data,
-//           thirdpartyWallet: false,
-//         };
+    return () => {
+      if (window.ethereum && window.ethereum.removeListener) {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      }
+    };
+  }, []);
 
-//         localStorage.setItem("user", JSON.stringify(userdata));
-//         setAccount(data);
-//       } else {
-//         if (!magic) throw new Error("Magic not connected");
-//         console.log("Magic", magic);
-//         const accounts = await magic.wallet.connectWithUI();
+  const handleAccountsChanged = (accounts: string[]) => {
+    if (accounts.length > 0) {
+      setCurrentAccount(accounts[0]);
+      setAccount(accounts[0]);
+    } else {
+      setCurrentAccount(null);
+      setAccount(null);
+    }
+  };
 
-//         const userInfo = await magic.user.getInfo();
-//         console.log("User Info", userInfo);
-//         const email = userInfo.email || accounts[0]; //If the user does not have an email, we will use the account as the email
-//         console.log("Email", email);
-//         console.log("Accounts", accounts[0]);
+  const handleChainChanged = () => {
+    window.location.reload();
+  };
 
-//         const data = await postConnect(accounts[0], email);
-//         const userdata = {
-//           ...data,
-//           thirdpartyWallet: email === accounts[0], //Since we are using magic to get the email, we can assume that the user is using a third party wallet if the email is the same as the account
-//         };
+  const switchToSepoliaTestnet = async () => {
+    const { ethereum } = window;
 
-//         console.log("User Data", userdata);
+    if (typeof ethereum === 'undefined') {
+      alert('MetaMask is not installed. Please install MetaMask and try again.');
+      return;
+    }
 
-//         localStorage.setItem("user", JSON.stringify(userdata));
-//         setAccount(data);
-//       }
-//     } catch (error: any) {
-//       console.error(error);
-//     } finally {
-//       setDisabled(false);
-//     }
-//   }, [magic, minipay, setAccount]);
+    try {
+      // Try to switch to the Sepolia Testnet network
+      await ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: ZORA_TESTNET_PARAMS.chainId }],
+      });
+    } catch (switchError: any) {
+      // If the chain is not available, add it
+      if (switchError.code === 4902) {
+        try {
+          // Add the Sepolia Testnet network
+          await ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [ZORA_TESTNET_PARAMS],
+          });
+          // After adding, switch to the network
+          await ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: ZORA_TESTNET_PARAMS.chainId }],
+          });
+        } catch (addError) {
+          console.error('Failed to add the Sepolia Testnet network:', addError);
+          alert('Failed to add the Sepolia Testnet network.');
+        }
+      } else {
+        console.error('Failed to switch to the Sepolia Testnet network:', switchError);
+        alert('Failed to switch to the Sepolia Testnet network.');
+      }
+    }
+  };
 
-//   const disconnect = useCallback(async () => {
-//     if (!magic) return;
-//     try {
-//       setDisabled(true);
-//       await magic.user.logout();
-//       localStorage.removeItem("user");
-//       setDisabled(false);
-//       setAccount(null);
-//     } catch (error) {
-//       setDisabled(false);
-//       console.error(error);
-//     }
-//   }, [magic, setAccount]);
+  const connect = async () => {
+    const { ethereum } = window;
 
-//   return (
-//     <Button
-//       variant={buttonVariant || "ghost"}
-//       size="sm"
-//       disabled={disabled}
-//       onClick={action == "Connect account" ? connect : disconnect}
-//       className="rounded-lg px-8 font-semibold"
-//     >
-//       <p
-//         className={
-//           action == "Connect account"
-//             ? "bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent"
-//             : "font-medium"
-//         }
-//       >
-//         {disabled ? (
-//           <Loader2 className="mx-auto h-4 w-4 animate-spin text-indigo-700" />
-//         ) : (
-//           action
-//         )}
-//       </p>
-//     </Button>
-//   );
-// };
+    try {
+      setDisabled(true);
+      if (typeof ethereum === 'undefined') {
+        alert('Please install MetaMask or another Ethereum-compatible wallet!');
+        return;
+      }
 
-// export default ConnectButton;
+      // Request account access
+      const accounts = await ethereum.request({
+        method: 'eth_requestAccounts',
+      });
+      handleAccountsChanged(accounts);
+
+      // Check the current network and switch if necessary
+      const chainId = await ethereum.request({ method: 'eth_chainId' });
+
+      if (chainId !== ZORA_TESTNET_PARAMS.chainId) {
+        await switchToSepoliaTestnet(); // Switch to Sepolia Testnet if not on the right network
+      }
+    } catch (error) {
+      console.error('Connection error:', error);
+    } finally {
+      setDisabled(false);
+    }
+  };
+
+  const disconnect = () => {
+    setCurrentAccount(null);
+    setAccount(null);
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      disabled={disabled}
+      onClick={currentAccount ? disconnect : connect}
+      className="rounded-lg px-8 font-semibold"
+    >
+      {currentAccount ? 'Disconnect' : 'Connect Wallet'}
+    </Button>
+  );
+};
+
+export default ConnectButton;
