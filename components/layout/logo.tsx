@@ -4,20 +4,24 @@ import Link from "next/link";
 interface LogoProps {
   text: string;
 }
+
 export function Logo({ text }: LogoProps) {
   return (
     <Link
       href="/"
-      className=" ml-2 text-base transition-colors hover:text-primary font-bold"
+      className="ml-2 transition-colors hover:text-primary font-bold text-2xl"
     >
-      <div className="flex">
+      <div className="flex text-3xl items-center">
         <div className="ml-1 m-1">Zora</div>
-        <LogoSVG />
+        <div className="w-8 h-8">
+          <LogoSVG />
+        </div>
         <div className="ml-1 m-1">Gift</div>
       </div>
     </Link>
   );
 }
+
 
 export const LogoSVG = () => {
   return (
