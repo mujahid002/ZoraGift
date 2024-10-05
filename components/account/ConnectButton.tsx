@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+// components/ConnectButton.tsx
 
-interface Props {
-  setAccount: React.Dispatch<React.SetStateAction<string | null>>;
-}
+"use client";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ZORA_TESTNET_PARAMS } from "@/lib/networks";
 
 declare global {
   interface Window {
@@ -11,33 +11,35 @@ declare global {
   }
 }
 
-const ConnectButton: React.FC<Props> = ({ setAccount }) => {
-  const [disabled, setDisabled] = useState(false);
-  const [currentAccount, setCurrentAccount] = useState<string | null>(null);
+interface Props {
+  setAccount: React.Dispatch<React.SetStateAction<string | null>>;
+}
 
-  // Sepolia Testnet network parameters
-  const ZORA_TESTNET_PARAMS = {
-    chainId: '0xaa36a7', // 11155111 in hex
-    chainName: 'Sepolia Testnet',
-    nativeCurrency: {
-      name: 'SepoliaETH',
-      symbol: 'ETH',
-      decimals: 18,
-    },
-    rpcUrls: ['https://rpc.sepolia.org'], // Update with the correct Sepolia RPC URL
-    blockExplorerUrls: ['https://sepolia.etherscan.io/'], // Update with the correct Sepolia explorer URL
-  };
+const ConnectButton: React.FC<Props> = ({ setAccount }) => {
+  const [currentAccount, setCurrentAccount] = useState<string | null>(null);
+  const [isCorrectNetwork, setIsCorrectNetwork] = useState<boolean>(true);
+  const [disabled, setDisabled] = useState(false);
 
   useEffect(() => {
-    if (typeof window.ethereum !== 'undefined') {
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
+    if (typeof window.ethereum !== "undefined") {
+      window.ethereum.on("accountsChanged", handleAccountsChanged);
+      window.ethereum.on("chainChanged", handleChainChanged);
+
+      // Check if the user is already connected
+      window.ethereum
+        .request({ method: "eth_accounts" })
+        .then(handleAccountsChanged)
+        .catch((err: any) => {
+          console.error(err);
+        });
+
+      checkNetwork();
     }
 
     return () => {
       if (window.ethereum && window.ethereum.removeListener) {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
+        window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
+        window.ethereum.removeListener("chainChanged", handleChainChanged);
       }
     };
   }, []);
@@ -46,6 +48,7 @@ const ConnectButton: React.FC<Props> = ({ setAccount }) => {
     if (accounts.length > 0) {
       setCurrentAccount(accounts[0]);
       setAccount(accounts[0]);
+      checkNetwork();
     } else {
       setCurrentAccount(null);
       setAccount(null);
@@ -53,44 +56,54 @@ const ConnectButton: React.FC<Props> = ({ setAccount }) => {
   };
 
   const handleChainChanged = () => {
+    checkNetwork();
     window.location.reload();
   };
 
-  const switchToSepoliaTestnet = async () => {
+  const checkNetwork = async () => {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const chainId = await window.ethereum.request({ method: "eth_chainId" });
+        if (chainId !== ZORA_TESTNET_PARAMS.chainId) {
+          setIsCorrectNetwork(false);
+        } else {
+          setIsCorrectNetwork(true);
+        }
+      } catch (err) {
+        console.error("Error checking network:", err);
+      }
+    }
+  };
+
+  const switchToZoraSepoliaTestnet = async () => {
     const { ethereum } = window;
 
-    if (typeof ethereum === 'undefined') {
-      alert('MetaMask is not installed. Please install MetaMask and try again.');
+    if (typeof ethereum === "undefined") {
+      alert("MetaMask is not installed. Please install MetaMask and try again.");
       return;
     }
 
     try {
-      // Try to switch to the Sepolia Testnet network
       await ethereum.request({
-        method: 'wallet_switchEthereumChain',
+        method: "wallet_switchEthereumChain",
         params: [{ chainId: ZORA_TESTNET_PARAMS.chainId }],
       });
+      setIsCorrectNetwork(true);
     } catch (switchError: any) {
-      // If the chain is not available, add it
       if (switchError.code === 4902) {
         try {
-          // Add the Sepolia Testnet network
           await ethereum.request({
-            method: 'wallet_addEthereumChain',
+            method: "wallet_addEthereumChain",
             params: [ZORA_TESTNET_PARAMS],
           });
-          // After adding, switch to the network
-          await ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: ZORA_TESTNET_PARAMS.chainId }],
-          });
+          setIsCorrectNetwork(true);
         } catch (addError) {
-          console.error('Failed to add the Sepolia Testnet network:', addError);
-          alert('Failed to add the Sepolia Testnet network.');
+          console.error("Failed to add the Zora Sepolia Testnet network:", addError);
+          alert("Failed to add the Zora Sepolia Testnet network.");
         }
       } else {
-        console.error('Failed to switch to the Sepolia Testnet network:', switchError);
-        alert('Failed to switch to the Sepolia Testnet network.');
+        console.error("Failed to switch to the Zora Sepolia Testnet network:", switchError);
+        alert("Failed to switch to the Zora Sepolia Testnet network.");
       }
     }
   };
@@ -100,25 +113,24 @@ const ConnectButton: React.FC<Props> = ({ setAccount }) => {
 
     try {
       setDisabled(true);
-      if (typeof ethereum === 'undefined') {
-        alert('Please install MetaMask or another Ethereum-compatible wallet!');
+      if (typeof ethereum === "undefined") {
+        alert("Please install MetaMask or another Ethereum-compatible wallet!");
         return;
       }
 
       // Request account access
       const accounts = await ethereum.request({
-        method: 'eth_requestAccounts',
+        method: "eth_requestAccounts",
       });
       handleAccountsChanged(accounts);
 
       // Check the current network and switch if necessary
-      const chainId = await ethereum.request({ method: 'eth_chainId' });
-
-      if (chainId !== ZORA_TESTNET_PARAMS.chainId) {
-        await switchToSepoliaTestnet(); // Switch to Sepolia Testnet if not on the right network
+      await checkNetwork();
+      if (!isCorrectNetwork) {
+        await switchToZoraSepoliaTestnet();
       }
     } catch (error) {
-      console.error('Connection error:', error);
+      console.error("Connection error:", error);
     } finally {
       setDisabled(false);
     }
@@ -137,7 +149,7 @@ const ConnectButton: React.FC<Props> = ({ setAccount }) => {
       onClick={currentAccount ? disconnect : connect}
       className="rounded-lg px-8 font-semibold"
     >
-      {currentAccount ? 'Disconnect' : 'Connect Wallet'}
+      {currentAccount ? "Disconnect" : "Connect Wallet"}
     </Button>
   );
 };
