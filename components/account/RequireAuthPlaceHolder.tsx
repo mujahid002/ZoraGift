@@ -1,8 +1,9 @@
+// components/account/RequireAuthPlaceholder.tsx
+
 "use client";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ZORA_TESTNET_PARAMS } from '@/lib/networks';
-
+import { ZORA_TESTNET_PARAMS } from "@/lib/networks";
 
 declare global {
   interface Window {
@@ -13,10 +14,7 @@ declare global {
 export function RequireAuthPlaceholder() {
   const [account, setAccount] = useState<string | null>(null);
   const [isCorrectNetwork, setIsCorrectNetwork] = useState<boolean>(true);
-  const [networkError, setNetworkError] = useState<string | null>(null);
 
-
-  // Function to check if the wallet is connected
   const checkWalletConnection = async () => {
     if (typeof window.ethereum !== "undefined") {
       try {
@@ -37,28 +35,23 @@ export function RequireAuthPlaceholder() {
     }
   };
 
-  // Function to check if the user is on Sepolia Testnet network
   const checkNetwork = async () => {
     if (typeof window.ethereum !== "undefined") {
       try {
         const chainId = await window.ethereum.request({ method: "eth_chainId" });
 
-        // Check if the user is connected to Sepolia Testnet
+        // Check if the user is connected to Zora Sepolia Testnet
         if (chainId !== ZORA_TESTNET_PARAMS.chainId) {
           setIsCorrectNetwork(false);
-          setNetworkError("Please switch to the Sepolia Testnet network.");
         } else {
           setIsCorrectNetwork(true);
-          setNetworkError(null);
         }
       } catch (err) {
         console.error("Error checking network:", err);
-        setNetworkError("Error checking network.");
       }
     }
   };
 
-  // Connect wallet function
   const connectWallet = async () => {
     if (typeof window.ethereum === "undefined") {
       alert("Please install MetaMask or another Ethereum-compatible wallet!");
@@ -68,55 +61,51 @@ export function RequireAuthPlaceholder() {
     try {
       const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
       setAccount(accounts[0]); // Set the first connected account
-      checkNetwork(); // Check the network after connecting
+      await checkNetwork(); // Check the network after connecting
+      if (!isCorrectNetwork) {
+        await switchToZoraSepoliaTestnet();
+      }
     } catch (err) {
       console.error("Error connecting to wallet:", err);
     }
   };
 
-  // Prompt user to switch to Sepolia Testnet network
-  const switchToSepoliaTestnet = async () => {
+  const switchToZoraSepoliaTestnet = async () => {
     try {
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
-        params: [{ chainId: ZORA_TESTNET_PARAMS.chainId }], // Sepolia Testnet chain ID
+        params: [{ chainId: ZORA_TESTNET_PARAMS.chainId }],
       });
       setIsCorrectNetwork(true);
-      setNetworkError(null);
     } catch (err: any) {
       if (err.code === 4902) {
-        // The network is not available in MetaMask, so we request to add it
         try {
           await window.ethereum.request({
             method: "wallet_addEthereumChain",
             params: [ZORA_TESTNET_PARAMS],
           });
-          // After adding the network, switch to it
           await window.ethereum.request({
             method: "wallet_switchEthereumChain",
             params: [{ chainId: ZORA_TESTNET_PARAMS.chainId }],
           });
           setIsCorrectNetwork(true);
-          setNetworkError(null);
         } catch (addError) {
-          console.error("Failed to add the Sepolia Testnet network:", addError);
-          alert("Failed to add the Sepolia Testnet network.");
+          console.error("Failed to add the Zora Sepolia Testnet network:", addError);
+          alert("Failed to add the Zora Sepolia Testnet network.");
         }
       } else {
         console.error("Failed to switch network:", err);
-        alert("Failed to switch to the Sepolia Testnet network.");
+        alert("Failed to switch to the Zora Sepolia Testnet network.");
       }
     }
   };
 
   useEffect(() => {
     const initialize = async () => {
-      await checkNetwork();
       await checkWalletConnection();
     };
     initialize();
   }, []);
-  
 
   return (
     <div className="mx-4 flex p-24 shrink-0 items-center justify-center rounded-md border border-dashed">
@@ -153,13 +142,12 @@ export function RequireAuthPlaceholder() {
             strokeLinecap="round"
           />
         </svg>
-
         <h3 className="mt-4 text-lg font-semibold">Connect Wallet</h3>
         <p className="mb-4 mt-2 text-sm text-muted-foreground m-2">
           {account
             ? isCorrectNetwork
               ? "Wallet connected!"
-              : networkError
+              : "Please switch to the Zora Sepolia Testnet network."
             : "You are currently not signed in. Please connect your wallet to continue."}
         </p>
         {!account && (
@@ -168,8 +156,8 @@ export function RequireAuthPlaceholder() {
           </Button>
         )}
         {account && !isCorrectNetwork && (
-          <Button onClick={switchToSepoliaTestnet} className="mt-4">
-            Switch to Sepolia Testnet
+          <Button onClick={switchToZoraSepoliaTestnet} className="mt-4">
+            Switch to Zora Sepolia Testnet
           </Button>
         )}
       </div>
