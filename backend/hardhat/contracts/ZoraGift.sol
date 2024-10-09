@@ -62,8 +62,6 @@ contract ZoraGift is
 
     /// @dev Maps a tokenId to its redemption timestamp.
     mapping(uint256 => uint64) private s_tokenIdToRedemptionTimestamp;
-
-    /// @dev Maps a tokenId to the total amount contributed.
     mapping(uint256 => uint256) private s_tokenIdToTotalAmount;
 
     /// @dev Tracks the next tokenId to be minted.
@@ -137,13 +135,12 @@ contract ZoraGift is
             s_tokenIdToRedemptionTimestamp[tokenId] = redemptionTimestamp;
         }
 
-        _safeMint(to, tokenId);
-
-        // Initialize contributors
         s_tokenIdToContributors[tokenId].push(_msgSender());
         s_tokenIdToContributions[tokenId].push(msg.value);
         s_tokenIdToTotalAmount[tokenId] += msg.value;
         s_tokenIdToURI[tokenId] = ipfsHash;
+
+        _safeMint(to, tokenId);
 
         emit GiftSent(_msgSender(), to, tokenId, msg.value);
     }
@@ -156,7 +153,11 @@ contract ZoraGift is
 
         // Check if the gift is still contributable
         uint64 redemptionTimestamp = s_tokenIdToRedemptionTimestamp[tokenId];
-        if (redemptionTimestamp != 0 && block.timestamp > redemptionTimestamp) {
+        if (
+            (redemptionTimestamp != 0 &&
+                uint64(block.timestamp) > redemptionTimestamp) ||
+            redemptionTimestamp == 0
+        ) {
             revert ZoraGift__NotContributable();
         }
 
@@ -171,7 +172,6 @@ contract ZoraGift is
             uint256 index = uint256(contributorIndex);
             s_tokenIdToContributions[tokenId][index] += msg.value;
         }
-
         s_tokenIdToTotalAmount[tokenId] += msg.value;
     }
 
@@ -188,11 +188,10 @@ contract ZoraGift is
             revert ZoraGift__NotRedeemable();
         }
 
-        uint256 totalAmount = s_tokenIdToTotalAmount[tokenId];
+        uint256 totalAmount = getTotalContributedAmount(tokenId);
         if (totalAmount == 0) revert ZoraGift__AlreadyRedeemed();
 
-        // Reset the total amount before transferring to prevent reentrancy
-        s_tokenIdToTotalAmount[tokenId] = 0;
+        delete s_tokenIdToTotalAmount[tokenId];
 
         (bool success, ) = _msgSender().call{value: totalAmount}("");
         if (!success) revert ZoraGift__TransferFailed();
@@ -230,8 +229,17 @@ contract ZoraGift is
     /// @return The total contributed amount.
     function getTotalContributedAmount(
         uint256 tokenId
-    ) external view returns (uint256) {
+    ) public view returns (uint256) {
         return s_tokenIdToTotalAmount[tokenId];
+    }
+
+    function getCollectedAmount(uint256 tokenId) public view returns (uint256) {
+        uint256 totalAmount = 0;
+        uint256[] memory amounts = getContributions(tokenId);
+        for (uint256 i = 0; i < amounts.length; i++) {
+            totalAmount += amounts[i];
+        }
+        return totalAmount;
     }
 
     /// @notice Retrieves the list of contributors for a specific tokenId.
@@ -248,7 +256,7 @@ contract ZoraGift is
     /// @return An array of contribution amounts corresponding to each contributor.
     function getContributions(
         uint256 tokenId
-    ) external view returns (uint256[] memory) {
+    ) public view returns (uint256[] memory) {
         return s_tokenIdToContributions[tokenId];
     }
 
