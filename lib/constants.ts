@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 
 // Contracts
-export const ZORAGIFT_ADDRESS: string = "0x5539dFfaFe2785Ae0B1301001076c11f3af4eB67";
+export const ZORAGIFT_ADDRESS: string = "0xE2E39B1A5eFe07743F9E0E8408F1B7aAB6B7f832";
 export const ZORAGIFT_ABI = [
     {
         "inputs": [],
@@ -462,6 +462,25 @@ export const ZORAGIFT_ABI = [
     {
         "inputs": [
             {
+                "internalType": "address",
+                "name": "userAddress",
+                "type": "address"
+            }
+        ],
+        "name": "fetchGifts",
+        "outputs": [
+            {
+                "internalType": "uint256[]",
+                "name": "",
+                "type": "uint256[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
                 "internalType": "uint256",
                 "name": "tokenId",
                 "type": "uint256"
@@ -554,6 +573,25 @@ export const ZORAGIFT_ABI = [
                 "internalType": "address[]",
                 "name": "",
                 "type": "address[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "tokenId",
+                "type": "uint256"
+            }
+        ],
+        "name": "getIpfsHash",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
             }
         ],
         "stateMutability": "view",
@@ -770,7 +808,13 @@ export const ZORAGIFT_ABI = [
             }
         ],
         "name": "sendGift",
-        "outputs": [],
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
         "stateMutability": "payable",
         "type": "function"
     },
@@ -943,11 +987,10 @@ export const ZORAGIFT_ABI = [
         "type": "function"
     }
 ]
+// Function to initialize the provider (MetaMask)
 export const initializeProvider = (): ethers.BrowserProvider | null => {
     if (typeof window === "undefined") {
-        console.warn(
-            "initializeProvider: Window object not available on the server."
-        );
+        console.warn("initializeProvider: Window object not available on the server.");
         return null;
     }
 
@@ -961,12 +1004,36 @@ export const initializeProvider = (): ethers.BrowserProvider | null => {
     }
 };
 
-export const provider: any = initializeProvider();
-export const signer = provider ? provider.getSigner() : null;
+// Initialize provider
+export const provider: ethers.BrowserProvider | null = initializeProvider();
 
-export const zoraGiftContract = signer
-    ? new ethers.Contract(ZORAGIFT_ADDRESS, ZORAGIFT_ABI, signer)
-    : null;
+export const getSigner = async (): Promise<ethers.JsonRpcSigner | null> => {
+    if (!provider) {
+        console.error("Provider not initialized");
+        return null;
+    }
 
-export const zoraGiftContractWithSigner =
-    zoraGiftContract?.connect(signer);
+    try {
+        // Request accounts from MetaMask or the connected wallet
+        await provider.send("eth_requestAccounts", []);
+        // Return the signer asynchronously
+        return provider.getSigner();
+    } catch (error) {
+        console.error("Error getting signer:", error);
+        return null;
+    }
+};
+
+
+// Initialize the contract with the signer
+export const initializeContract = async (): Promise<ethers.Contract | null> => {
+    const signer = await getSigner();
+    if (!signer) {
+        console.error("Signer not available");
+        return null;
+    }
+
+    // Return a new contract instance using the signer
+    return new ethers.Contract(ZORAGIFT_ADDRESS, ZORAGIFT_ABI, signer);
+};
+;
