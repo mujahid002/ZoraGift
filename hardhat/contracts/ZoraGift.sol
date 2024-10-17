@@ -58,7 +58,7 @@ contract ZoraGift is
     mapping(uint256 => uint256[]) private s_tokenIdToContributions;
 
     /// @dev Maps a tokenId to its metadata URI.
-    mapping(uint256 => string) private s_tokenIdToURI;
+    mapping(uint256 => string) private s_tokenIdToIpfsHash;
 
     /// @dev Maps a tokenId to its redemption timestamp.
     mapping(uint256 => uint64) private s_tokenIdToRedemptionTimestamp;
@@ -100,7 +100,7 @@ contract ZoraGift is
     /// @notice Returns the base URI for token metadata.
     /// @return The base URI as a string.
     function _baseURI() internal pure override returns (string memory) {
-        return "ipfs://";
+        return "ipfs.io/ipfs/";
     }
 
     /// @notice Overrides the tokenURI function to return the correct metadata URI.
@@ -110,7 +110,8 @@ contract ZoraGift is
         uint256 tokenId
     ) public view override returns (string memory) {
         if (!exists(tokenId)) revert ZoraGift__TokenDoesNotExist();
-        return string(abi.encodePacked(_baseURI(), s_tokenIdToURI[tokenId]));
+        return
+            string(abi.encodePacked(_baseURI(), s_tokenIdToIpfsHash[tokenId]));
     }
 
     /// @notice Sends a gift by minting an NFT to the recipient.
@@ -121,7 +122,7 @@ contract ZoraGift is
         address to,
         uint64 redemptionTimestamp,
         string calldata ipfsHash
-    ) external payable {
+    ) external payable returns (uint256) {
         if (to == address(0)) revert ZoraGift__InvalidAddress();
         if (msg.value == 0) revert ZoraGift__ZeroValue();
 
@@ -138,11 +139,12 @@ contract ZoraGift is
         s_tokenIdToContributors[tokenId].push(_msgSender());
         s_tokenIdToContributions[tokenId].push(msg.value);
         s_tokenIdToTotalAmount[tokenId] += msg.value;
-        s_tokenIdToURI[tokenId] = ipfsHash;
+        s_tokenIdToIpfsHash[tokenId] = ipfsHash;
 
         _safeMint(to, tokenId);
 
         emit GiftSent(_msgSender(), to, tokenId, msg.value);
+        return tokenId;
     }
 
     /// @notice Allows users to contribute to an existing gift.
@@ -221,7 +223,26 @@ contract ZoraGift is
                 return int256(i);
             }
         }
+
         return -1; // Contributor not found
+    }
+
+    function fetchGifts(
+        address userAddress
+    ) external view returns (uint256[] memory) {
+        uint256 giftCount = balanceOf(userAddress);
+        uint256[] memory allGifts = new uint256[](giftCount);
+        for (uint256 i = 0; i < giftCount; i++) {
+            allGifts[i] = tokenOfOwnerByIndex(userAddress, i);
+        }
+
+        return allGifts;
+    }
+
+    function getIpfsHash(
+        uint256 tokenId
+    ) external view returns (string memory) {
+        return s_tokenIdToIpfsHash[tokenId];
     }
 
     /// @notice Retrieves the total amount contributed to a specific tokenId.

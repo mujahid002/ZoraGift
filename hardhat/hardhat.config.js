@@ -5,6 +5,7 @@ require("dotenv").config();
 
 module.exports = {
   solidity: "0.8.27",
+
   networks: {
     zoraSepolia: {
       url: "https://sepolia.rpc.zora.energy",
