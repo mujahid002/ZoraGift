@@ -83,7 +83,7 @@ const Home = () => {
                   <Button className="px-16">Start Gifting</Button>
                 </Link>
                 <div className="hidden lg:flex">
-                  <Link href="/redeem">
+                  <Link href="/gifts">
                     <Button variant="outline" className="px-16 text-black">
                       Redeem Yours
                     </Button>
@@ -138,11 +138,11 @@ const Home = () => {
           </div>
         </div>
 
-        <div className="lg:mx-8">
+        {/* <div className="lg:mx-8">
           <h2 className="text-2xl font-bold mb-4">
             Creations from the Community
           </h2>
-        </div>
+        </div> */}
       </div>
     </>
   );
