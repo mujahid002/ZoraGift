@@ -17,7 +17,7 @@ import { ethers } from "ethers";
 interface Creation {
   id: number;
   ipfsHash: string;
-  walletAddress: string;
+  to: string;
   name: string;
   occasionType: string;
   description: string;
@@ -106,8 +106,7 @@ export default function Gifts() {
 
         const redeemableCreations = ipfsData.filter(
           (creation) =>
-            creation.walletAddress &&
-            creation.walletAddress.toLowerCase() === accountLower
+            creation.to && creation.to.toLowerCase() === accountLower
         );
         setRedeemableCreations(redeemableCreations);
       }
@@ -233,7 +232,7 @@ export default function Gifts() {
                       No gifts created by you.
                     </div>
                     <Link href="/gift">
-                      <Button className="px-16 mt-4">Create a Gift</Button>
+                      <Button className="px-16 mt-4">Start Gifting</Button>
                     </Link>
                   </div>
                 )}
