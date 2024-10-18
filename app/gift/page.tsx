@@ -8,7 +8,6 @@ import AppBar from "@/components/layout/AppBar";
 import { Button } from "@/components/ui/button";
 import { generateImage } from "@/lib/generateImage";
 import { Modal } from "@/components/ui/modal";
-import { RequireAuthPlaceholder } from "../../components/account/RequireAuthPlaceholder";
 import { ZORA_TESTNET_PARAMS } from "@/lib/networks";
 
 import { getSigner, initializeContract } from "@/lib/constants";
@@ -16,6 +15,8 @@ import { ethers } from "ethers";
 import { Loader2 } from "lucide-react"; // Import the Loader2 icon
 import { handleUpload } from "@/lib/upload";
 import { Input } from "@/components/ui/input";
+import Image from "next/image";
+import { Check } from "@/components/account/Check";
 
 const GiftForm: React.FC = () => {
   const [to, setto] = useState("");
@@ -37,6 +38,20 @@ const GiftForm: React.FC = () => {
 
   const [isMinting, setIsMinting] = useState(false);
   const [mintSuccess, setMintSuccess] = useState(false);
+
+  const handleAccountsChanged = (accounts: string[]) => {
+    if (accounts.length > 0) {
+      setAccount(accounts[0]);
+      checkNetwork();
+    } else {
+      setAccount(null);
+    }
+  };
+
+  const handleChainChanged = () => {
+    checkNetwork();
+    window.location.reload();
+  };
 
   useEffect(() => {
     const checkWalletConnection = async () => {
@@ -92,21 +107,7 @@ const GiftForm: React.FC = () => {
         window.ethereum.removeListener("chainChanged", handleChainChanged);
       }
     };
-  }, []);
-
-  const handleAccountsChanged = (accounts: string[]) => {
-    if (accounts.length > 0) {
-      setAccount(accounts[0]);
-      checkNetwork();
-    } else {
-      setAccount(null);
-    }
-  };
-
-  const handleChainChanged = () => {
-    checkNetwork();
-    window.location.reload();
-  };
+  }, [handleAccountsChanged, handleChainChanged]);
 
   const checkNetwork = async () => {
     if (typeof window.ethereum !== "undefined") {
@@ -337,9 +338,9 @@ const GiftForm: React.FC = () => {
     window.location.href = "/gifts";
   };
 
-  // If the wallet is not connected or on the wrong network, show RequireAuthPlaceholder component
+  // If the wallet is not connected or on the wrong network, show Check component
   if (!account || !isCorrectNetwork) {
-    return <RequireAuthPlaceholder />;
+    return <Check />;
   }
 
   return (
@@ -519,7 +520,7 @@ const GiftForm: React.FC = () => {
         {/* Modal Content */}
         <h2 className="text-xl font-bold mb-4">Your Generated Gift Image</h2>
         {generatedImageUrl ? (
-          <img
+          <Image
             src={generatedImageUrl}
             alt="Generated Gift"
             className="w-full"

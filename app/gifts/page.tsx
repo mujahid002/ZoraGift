@@ -7,11 +7,11 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RequireAuthPlaceholder } from "../../components/account/RequireAuthPlaceholder";
 import { Loader2 } from "lucide-react";
 
 import GiftCard from "@/components/nft/GiftCard";
 import { initializeContract } from "@/lib/constants";
+import { Check } from "@/components/account/Check";
 
 interface Creation {
   id: number;
@@ -150,11 +150,11 @@ export default function Gifts() {
         getCreations();
       });
     }
-  }, []);
+  }, [getCreations]);
 
   useEffect(() => {
     getCreations();
-  }, [account]);
+  }, [account, getCreations]);
 
   return (
     <div>
@@ -206,7 +206,7 @@ export default function Gifts() {
 
           {/* Gifts by You */}
           <TabsContent value="gifts-by-you">
-            {loadedAccount && !account && <RequireAuthPlaceholder />}
+            {loadedAccount && !account && <Check />}
             {account && (
               <>
                 {loadingCreations ? (
@@ -240,7 +240,7 @@ export default function Gifts() {
 
           {/* Redeem Yours */}
           <TabsContent value="redeem-yours">
-            {loadedAccount && !account && <RequireAuthPlaceholder />}
+            {loadedAccount && !account && <Check />}
             {account && (
               <>
                 {loadingCreations ? (

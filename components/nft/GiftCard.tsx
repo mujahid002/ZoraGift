@@ -11,6 +11,7 @@ import { ethers } from "ethers";
 import { getSigner, initializeContract } from "@/lib/constants";
 import { Loader2 } from "lucide-react"; // Import Loader2 for loading animations
 import { Input } from "../ui/input";
+import Image from "next/image";
 
 interface Gift {
   id: number;
@@ -189,7 +190,7 @@ export default function GiftCard({ gift }: { gift: Gift }) {
     <Card className="p-4">
       <Link href={`/gift/${gift.id}`}>
         <div className="cursor-pointer">
-          <img
+          <Image
             src={gift.image}
             alt={gift.name}
             width={300}

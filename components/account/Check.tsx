@@ -1,11 +1,11 @@
-// components/account/RequireAuthPlaceholder.tsx
+// components/account/Check.tsx
 // @ts-nocheck
 "use client";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ZORA_TESTNET_PARAMS } from "@/lib/networks";
 
-export function RequireAuthPlaceholder() {
+export function Check() {
   const [account, setAccount] = useState<string | null>(null);
   const [isCorrectNetwork, setIsCorrectNetwork] = useState<boolean>(true);
 
@@ -109,7 +109,7 @@ export function RequireAuthPlaceholder() {
       await checkWalletConnection();
     };
     initialize();
-  }, []);
+  }, [checkWalletConnection]);
 
   return (
     <div className="mx-4 flex p-24 shrink-0 items-center justify-center rounded-md border border-dashed">

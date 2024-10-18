@@ -21,6 +21,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <title>ZoraGift</title>
+      <meta
+        name="description"
+        content="Generative AI from Livepeer & Minting experience from Zora"
+      />
+
+      {/* <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <link rel="icon" href="/public/favicon.ico" /> */}
       <body className={chakra_petch.className}> {children}</body>
     </html>
   );

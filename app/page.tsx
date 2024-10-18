@@ -87,9 +87,18 @@ const Home = () => {
                 </p>
               </CardContent>
               <CardFooter>
-                <Link href="/gift">
-                  <Button className="ml-1">Create a Gift</Button>
-                </Link>
+                <div className="flex space-x-4">
+                  <Link href="/gift">
+                    <Button className="px-8">Create a Gift</Button>
+                  </Link>
+                  <div className="hidden lg:flex">
+                    <Link href="/gifts">
+                      <Button variant="outline" className="px-8 text-black">
+                        Contribute
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
               </CardFooter>
             </Card>
 

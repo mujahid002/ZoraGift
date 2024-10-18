@@ -18,6 +18,21 @@ const AccountMenu = () => {
   const [account, setAccount] = useState<string | null>(null);
   const [isCorrectNetwork, setIsCorrectNetwork] = useState<boolean>(true);
 
+  const handleAccountsChanged = (accounts: string[]) => {
+    if (accounts.length > 0) {
+      setAccount(accounts[0]);
+      // Check network when accounts change
+      checkNetwork();
+    } else {
+      setAccount(null);
+    }
+  };
+
+  const handleChainChanged = () => {
+    checkNetwork();
+    window.location.reload();
+  };
+
   useEffect(() => {
     if (typeof window.ethereum !== "undefined") {
       // Check if the user is already connected
@@ -46,22 +61,7 @@ const AccountMenu = () => {
         window.ethereum.removeListener("chainChanged", handleChainChanged);
       }
     };
-  }, []);
-
-  const handleAccountsChanged = (accounts: string[]) => {
-    if (accounts.length > 0) {
-      setAccount(accounts[0]);
-      // Check network when accounts change
-      checkNetwork();
-    } else {
-      setAccount(null);
-    }
-  };
-
-  const handleChainChanged = () => {
-    checkNetwork();
-    window.location.reload();
-  };
+  }, [handleAccountsChanged, handleChainChanged]);
 
   const checkNetwork = async () => {
     if (typeof window.ethereum !== "undefined") {
