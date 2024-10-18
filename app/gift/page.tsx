@@ -8,7 +8,7 @@ import AppBar from "@/components/layout/AppBar";
 import { Button } from "@/components/ui/button";
 import { generateImage } from "@/lib/generateImage";
 import { Modal } from "@/components/ui/modal";
-import { RequireAuthPlaceholder } from "@/components/account/RequireAuthPlaceholder";
+import { RequireAuthPlaceholder } from "../../components/account/RequireAuthPlaceholder";
 import { ZORA_TESTNET_PARAMS } from "@/lib/networks";
 
 import { getSigner, initializeContract } from "@/lib/constants";

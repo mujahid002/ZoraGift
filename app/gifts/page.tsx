@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RequireAuthPlaceholder } from "@/components/account/RequireAuthPlaceholder";
+import { RequireAuthPlaceholder } from "../../components/account/RequireAuthPlaceholder";
 import { Loader2 } from "lucide-react";
 
 import GiftCard from "@/components/nft/GiftCard";
