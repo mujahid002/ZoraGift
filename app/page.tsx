@@ -43,13 +43,13 @@ const Home = () => {
             <div className="w-full mx-8 md:w-1/2 md:mx-20 text-left">
               <h1 className="text-3xl lg:text-6xl font-black mb-4">ZoraGift</h1>
               <p className="text-xs lg:text-lg mb-4 lg:mb-8 font-medium tracking-tight">
-                Send Crypto Gifts That Mint as NFTs on Zora
+                Transfer Crypto as NFTs to Create Lasting Memories
               </p>
               <p className="text-xs lg:text-lg mb-4 lg:mb-8 font-medium tracking-tight">
-                When you transfer crypto, an NFT is minted for the recipient,
-                creating an innovative and memorable way to gift. The recipient
-                can redeem this NFT and the associated crypto, making the
-                experience more personal and engaging.
+                Using generative AI from Livepeer AI and Swarmzero.ai, ZoraGift
+                helps you generate unique images for special occasions. Make
+                your crypto transfers unforgettable by minting them as NFTs,
+                creating a unique and lasting memory.
               </p>
               <div className="flex space-x-4">
                 <Link href="/gift">
@@ -67,6 +67,7 @@ const Home = () => {
 
             {/* Right Section with Logo */}
             <div className="w-full md:w-1/2 flex justify-center md:justify-end mt-8 md:mt-0">
+              {/* Assuming you have a LogoSVG component */}
               <LogoSVG />
             </div>
           </div>
@@ -76,46 +77,40 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:gap-10 gap-4">
             <Card className="bg-gradient-to-br from-purple-600 to-blue-400 text-white p-4 rounded-2xl">
               <CardHeader>
-                <CardTitle>Contribute to Other Gifts</CardTitle>
+                <CardTitle>Create Special Occasion NFTs</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="hidden sm:block">
-                  Collaborate with others by contributing to group gifts. Make
-                  someone’s special day even more memorable with a joint crypto
-                  gift minted as an NFT.
+                  Use generative AI to craft unique images for birthdays,
+                  anniversaries, and more. Combine these with crypto transfers
+                  to make your gifts truly one-of-a-kind.
                 </p>
               </CardContent>
               <CardFooter>
-                <Link href="/gifts">
-                  <Button className="ml-1">Contribute</Button>
+                <Link href="/gift">
+                  <Button className="ml-1">Create a Gift</Button>
                 </Link>
               </CardFooter>
             </Card>
 
             <Card className="bg-gradient-to-br from-yellow-200 to-amber-400 p-4 rounded-2xl">
               <CardHeader>
-                <CardTitle>Gift Marketplace</CardTitle>
+                <CardTitle>Explore the Gift Gallery</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="hidden sm:block">
-                  Explore all NFT gifts minted by our community. Find unique
-                  gifts and redeemable NFTs tied to crypto transfers.
+                  Discover NFT gifts created by our community. Experience the
+                  unique blend of crypto transfers and AI-generated art.
                 </p>
               </CardContent>
               <CardFooter>
                 <Link href="/gifts">
-                  <Button className="">Enter Marketplace</Button>
+                  <Button className="">View Gallery</Button>
                 </Link>
               </CardFooter>
             </Card>
           </div>
         </div>
-
-        {/* <div className="lg:mx-8">
-          <h2 className="text-2xl font-bold mb-4">
-            Creations from the Community
-          </h2>
-        </div> */}
       </div>
     </>
   );
