@@ -8,9 +8,13 @@ import AppBar from "@/components/layout/AppBar";
 import { Button } from "@/components/ui/button";
 import { generateImage } from "@/lib/generateImage";
 import { Modal } from "@/components/ui/modal";
-import { Loader } from "@/components/ui/loader";
 import { RequireAuthPlaceholder } from "@/components/account/RequireAuthPlaceholder";
 import { ZORA_TESTNET_PARAMS } from "@/lib/networks";
+
+import { getSigner, initializeContract } from "@/lib/constants";
+import { ethers } from "ethers";
+import { Loader2 } from "lucide-react"; // Import the Loader2 icon
+import { handleUpload } from "@/lib/upload";
 
 declare global {
   interface Window {
@@ -35,6 +39,9 @@ const GiftForm: React.FC = () => {
 
   const [account, setAccount] = useState<string | null>(null);
   const [isCorrectNetwork, setIsCorrectNetwork] = useState<boolean>(true);
+
+  const [isMinting, setIsMinting] = useState(false);
+  const [mintSuccess, setMintSuccess] = useState(false);
 
   useEffect(() => {
     const checkWalletConnection = async () => {
@@ -196,18 +203,6 @@ const GiftForm: React.FC = () => {
       return;
     }
 
-    const timestamp = isInstantGift ? 0 : new Date(date).getTime();
-
-    const formData = {
-      walletAddress,
-      giftName,
-      occasionType,
-      description,
-      amount,
-      timestamp,
-      isInstantGift,
-    };
-
     try {
       setIsLoading(true);
 
@@ -222,8 +217,6 @@ const GiftForm: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-
-    console.log(JSON.stringify(formData));
   };
 
   const handleRegenerate = async () => {
@@ -253,18 +246,6 @@ const GiftForm: React.FC = () => {
       return;
     }
 
-    const timestamp = isInstantGift ? 0 : new Date(date).getTime();
-
-    const formData = {
-      walletAddress,
-      giftName,
-      occasionType,
-      description,
-      amount,
-      timestamp,
-      isInstantGift,
-    };
-
     try {
       setIsLoading(true);
 
@@ -272,21 +253,97 @@ const GiftForm: React.FC = () => {
       const prompt = `Generate a ${occasionType} card including the name ${giftName}`;
       const imageUrl = await generateImage(prompt);
       setGeneratedImageUrl(imageUrl);
-      setIsModalOpen(true);
     } catch (error) {
       console.error(error);
       alert("Failed to generate image. Please try again.");
     } finally {
       setIsLoading(false);
     }
-
-    console.log(JSON.stringify(formData));
   };
 
-  // Placeholder function for minting
-  const handleMint = () => {
-    // Implement minting functionality here
-    alert("Mint functionality is not yet implemented.");
+  const handleMint = async () => {
+    try {
+      setIsMinting(true);
+
+      // Get the signer
+      const signer = await getSigner();
+      const signerAddress = await signer?.getAddress();
+
+      // Create metadata object
+      const metadata = {
+        name: giftName || "Special ZoraGift",
+        description: description || "A special gift for you.",
+        occasionType: occasionType || "Special Day",
+        walletAddress: walletAddress,
+        amount: amount.toString(),
+        timestamp: isInstantGift
+          ? new Date().getTime().toString()
+          : new Date(date).getTime().toString(),
+        isInstantGift: isInstantGift,
+        createdBy: signerAddress,
+        image: generatedImageUrl,
+        content: {
+          mime: "image/jpeg",
+          uri: generatedImageUrl,
+        },
+      };
+
+      console.log("Metadata:", metadata);
+
+      // Upload metadata JSON via handleUpload (calls the API route)
+      const ipfsHash = await handleUpload(metadata);
+
+      if (!ipfsHash) {
+        console.error("Error uploading to IPFS");
+        throw new Error("Failed to upload the metadata to IPFS.");
+      }
+
+      // Proceed with minting on Zora using the IPFS hash
+      const to = walletAddress;
+      const redemptionTimestamp = isInstantGift
+        ? 0
+        : new Date(date).getTime().toString();
+
+      const zoraGiftContract = await initializeContract();
+
+      if (!zoraGiftContract) {
+        console.error("Contract not initialized");
+        return;
+      }
+
+      try {
+        // Sending the gift transaction
+        const trx = await zoraGiftContract.sendGift(
+          to,
+          redemptionTimestamp,
+          ipfsHash,
+          {
+            value: ethers.parseEther(amount.toString()), // Parse ETH to wei
+          }
+        );
+
+        console.log("Transaction sent:", trx);
+
+        // Wait for the transaction to be mined
+        await trx.wait();
+
+        console.log("Transaction confirmed:", trx);
+
+        setMintSuccess(true);
+      } catch (error) {
+        console.error("Error sending gift:", error);
+        alert("Failed to mint the NFT. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error in handleMint:", error);
+      alert("Failed to mint the NFT. Please try again.");
+    } finally {
+      setIsMinting(false);
+    }
+  };
+
+  const handleNavigateToGifts = () => {
+    window.location.href = "/gifts";
   };
 
   // If the wallet is not connected or on the wrong network, show RequireAuthPlaceholder component
@@ -448,24 +505,26 @@ const GiftForm: React.FC = () => {
 
             <Form.Submit asChild>
               <Button type="submit" className="w-full">
-                Submit
+                {isLoading ? (
+                  <Loader2 className="animate-spin mr-2" size={20} />
+                ) : (
+                  "Submit"
+                )}
               </Button>
             </Form.Submit>
           </Form.Root>
+
+          {/* Loading Indicator */}
+          {/* {isLoading && (
+            <div className="flex items-center justify-center mt-6">
+              <Loader2 className="animate-spin" size={32} />
+            </div>
+          )} */}
         </div>
       </div>
 
-      {/* Loading Indicator */}
-      {isLoading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <Loader />
-        </div>
-      )}
-
       {/* Modal with Generated Image */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-       
-
         {/* Modal Content */}
         <h2 className="text-xl font-bold mb-4">Your Generated Gift Image</h2>
         {generatedImageUrl ? (
@@ -477,20 +536,46 @@ const GiftForm: React.FC = () => {
         ) : (
           <p>Failed to load image.</p>
         )}
-        <div className="mt-4 flex space-x-4">
-          <Button onClick={handleMint} className="w-2/3">
-            Mint on Zora
-          </Button>
-          <Button
-            onClick={() => {
-              handleRegenerate();
-              setIsModalOpen(false);
-            }}
-            className="w-1/3"
-            variant="outline"
-          >
-            Re-Generate
-          </Button>
+        <div className="mt-4 flex flex-col space-y-4">
+          {!mintSuccess ? (
+            <>
+              <Button onClick={handleMint} className="w-full mb-1">
+                {isMinting ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2" size={20} />
+                    Minting...
+                  </>
+                ) : (
+                  "Mint on Zora"
+                )}
+              </Button>
+              <Button
+                onClick={() => {
+                  handleRegenerate();
+                }}
+                className="w-full"
+                variant="outline"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2" size={20} />
+                    Regenerating...
+                  </>
+                ) : (
+                  "Re-Generate"
+                )}
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-green-600 font-semibold">
+                Minting successful! Your gift NFT has been created.
+              </p>
+              <Button onClick={handleNavigateToGifts} className="w-full">
+                Go to Gifts Page
+              </Button>
+            </>
+          )}
         </div>
       </Modal>
     </div>
