@@ -3,7 +3,24 @@ import { PinataSDK } from "pinata";
 import axios from 'axios';
 import FormData from 'form-data';
 
-export const Upload = async (data: any) => {
+export interface data {
+    name: string;
+    description: string,
+    occasionType: string,
+    to: string,
+    amount: string,
+    timestamp: string,
+
+    isInstantGift: boolean,
+    createdBy: string,
+    image: string,
+    content: {
+        mime: string,
+        uri: string,
+    },
+}
+
+export const Upload = async (data: data) => {
     const pinata = new PinataSDK({
         pinataJwt: process.env.NEXT_PUBLIC_PINATA_JWT,
         pinataGateway: "white-underlying-coral-820.mypinata.cloud",
@@ -14,11 +31,6 @@ export const Upload = async (data: any) => {
     })
 
     return res;
-}
-
-interface UploadData {
-    file: File | Blob;
-    timestamp?: number;
 }
 
 export interface Metadata {

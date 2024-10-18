@@ -9,7 +9,7 @@ export default function AppBar() {
       <Menubar className="w-full rounded-none border-none px-6 lg:px-8">
         <MenubarMenu>
           <MenubarTrigger>
-            <Logo text="ZoraGift" /> {/* Increase logo size */}
+            <Logo />
           </MenubarTrigger>
         </MenubarMenu>
         <div className="grow" />

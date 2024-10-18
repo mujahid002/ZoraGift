@@ -2,27 +2,19 @@
 
 "use client";
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 import { ethers } from "ethers";
 import { getSigner, initializeContract } from "@/lib/constants";
 import { Loader2 } from "lucide-react"; // Import Loader2 for loading animations
 
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
-
 interface Gift {
   id: number;
   ipfsHash: string;
-  to: string; // Ensure this is the recipient's address
+  to: string;
   name: string;
   occasionType: string;
   description: string;
@@ -84,7 +76,12 @@ export default function GiftCard({ gift }: { gift: Gift }) {
 
         // Assuming there is a function isGiftRedeemed(tokenId) that returns a boolean
         const amount = await zoraGiftContract.getCollectedAmount(gift.id);
-        amount > 0 ? setIsRedeemed(true) : setIsRedeemed(false);
+
+        if (amount > 0) {
+          setIsRedeemed(false);
+        } else {
+          setIsRedeemed(true);
+        }
       } catch (error) {
         console.error("Error checking redeemed status:", error);
       }
@@ -242,7 +239,7 @@ export default function GiftCard({ gift }: { gift: Gift }) {
       ) : !isExpired ? (
         // Show contribute option if gift is not expired
         <div className="mt-4">
-          <Input
+          <input
             type="number"
             placeholder="Amount in ETH"
             value={contributionAmount}

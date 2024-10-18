@@ -1,15 +1,10 @@
 // components/ConnectButton.tsx
+// @ts-nocheck
 
 "use client";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ZORA_TESTNET_PARAMS } from "@/lib/networks";
-
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
 
 interface Props {
   setAccount: React.Dispatch<React.SetStateAction<string | null>>;
@@ -38,7 +33,10 @@ const ConnectButton: React.FC<Props> = ({ setAccount }) => {
 
     return () => {
       if (window.ethereum && window.ethereum.removeListener) {
-        window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
+        window.ethereum.removeListener(
+          "accountsChanged",
+          handleAccountsChanged
+        );
         window.ethereum.removeListener("chainChanged", handleChainChanged);
       }
     };
@@ -63,7 +61,9 @@ const ConnectButton: React.FC<Props> = ({ setAccount }) => {
   const checkNetwork = async () => {
     if (typeof window.ethereum !== "undefined") {
       try {
-        const chainId = await window.ethereum.request({ method: "eth_chainId" });
+        const chainId = await window.ethereum.request({
+          method: "eth_chainId",
+        });
         if (chainId !== ZORA_TESTNET_PARAMS.chainId) {
           setIsCorrectNetwork(false);
         } else {
@@ -79,7 +79,9 @@ const ConnectButton: React.FC<Props> = ({ setAccount }) => {
     const { ethereum } = window;
 
     if (typeof ethereum === "undefined") {
-      alert("MetaMask is not installed. Please install MetaMask and try again.");
+      alert(
+        "MetaMask is not installed. Please install MetaMask and try again."
+      );
       return;
     }
 
@@ -98,11 +100,17 @@ const ConnectButton: React.FC<Props> = ({ setAccount }) => {
           });
           setIsCorrectNetwork(true);
         } catch (addError) {
-          console.error("Failed to add the Zora Sepolia Testnet network:", addError);
+          console.error(
+            "Failed to add the Zora Sepolia Testnet network:",
+            addError
+          );
           alert("Failed to add the Zora Sepolia Testnet network.");
         }
       } else {
-        console.error("Failed to switch to the Zora Sepolia Testnet network:", switchError);
+        console.error(
+          "Failed to switch to the Zora Sepolia Testnet network:",
+          switchError
+        );
         alert("Failed to switch to the Zora Sepolia Testnet network.");
       }
     }

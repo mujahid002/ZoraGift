@@ -1,14 +1,7 @@
 "use client";
 
 import React from "react";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardFooter,
-  CardTitle,
-  CardDescription,
-} from "./card";
+import { Card, CardHeader, CardContent, CardFooter, CardTitle } from "./card";
 import { Button } from "./button";
 
 type CustomCardProps = {

@@ -1012,8 +1012,7 @@ export const initializeProvider = (): ethers.BrowserProvider | null => {
         console.warn("initializeProvider: Window object not available on the server.");
         return null;
     }
-
-    const windowWithEthereum = window as Window & { ethereum?: any };
+    const windowWithEthereum = window;
 
     if (windowWithEthereum.ethereum) {
         return new ethers.BrowserProvider(windowWithEthereum.ethereum);
