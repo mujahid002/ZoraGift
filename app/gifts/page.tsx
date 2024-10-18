@@ -1,3 +1,5 @@
+// pages/gifts.tsx
+
 "use client";
 import Link from "next/link";
 import AppBar from "@/components/layout/AppBar";
@@ -6,21 +8,23 @@ import { Button } from "@/components/ui/button";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RequireAuthPlaceholder } from "@/components/account/RequireAuthPlaceholder";
-import { LoaderCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
-import CreationCard from "@/components/nft/CreationCard";
+import GiftCard from "@/components/nft/GiftCard";
 import { initializeContract } from "@/lib/constants";
 import { ethers } from "ethers";
 
 interface Creation {
   id: number;
   ipfsHash: string;
-  ownerAddress: string;
-  recipientAddress: string;
-  giftName: string;
-  imageUrl: string;
-  totalAmount: string;
-  endTime: number;
+  walletAddress: string;
+  name: string;
+  occasionType: string;
+  description: string;
+  amount: string;
+  timestamp: string;
+  createdBy: string;
+  image: string;
   [key: string]: any;
 }
 
@@ -33,18 +37,21 @@ export default function Gifts() {
   const [account, setAccount] = useState<string | null>(null);
   const [loadingCreations, setLoadingCreations] = useState<boolean>(false);
   const [loadedAccount, setLoadedAccount] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Helper function to fetch IPFS data concurrently
-  const fetchIpfsData = async (ipfsHashes: string[]): Promise<Creation[]> => {
+  // Fetch IPFS data and include the id in each gift
+  const fetchIpfsData = async (
+    gifts: { id: number; ipfsHash: string }[]
+  ): Promise<Creation[]> => {
     const ipfsData = await Promise.all(
-      ipfsHashes.map(async (hash) => {
+      gifts.map(async (gift) => {
         try {
-          // Use an alternative IPFS gateway for faster access
-          const response = await fetch(`https://ipfs.io/ipfs/${hash}`);
+          const response = await fetch(`https://ipfs.io/ipfs/${gift.ipfsHash}`);
           if (!response.ok) throw new Error("Failed to fetch IPFS data");
-          return await response.json();
+          const data = await response.json();
+          return { ...data, id: gift.id }; // Include the id
         } catch (error) {
-          console.error(`Error fetching IPFS hash ${hash}:`, error);
+          console.error(`Error fetching IPFS hash ${gift.ipfsHash}:`, error);
           return null;
         }
       })
@@ -54,48 +61,59 @@ export default function Gifts() {
 
   const getCreations = async () => {
     setLoadingCreations(true);
+    setError(null);
 
     try {
       const zoraGiftContract = await initializeContract();
 
       if (!zoraGiftContract) {
         console.error("ZoraGift contract not initialized.");
+        setError("Failed to initialize contract.");
         return;
       }
 
       const presentTokenId = await zoraGiftContract.getNextTokenId();
       const tokenId = Number(presentTokenId);
 
-      const ipfsHashes: string[] = await Promise.all(
+      if (tokenId === 0) {
+        // No gifts have been created yet
+        setCreations([]);
+        setMyCreations([]);
+        setRedeemableCreations([]);
+        return;
+      }
+
+      const gifts = await Promise.all(
         Array.from({ length: tokenId }, async (_, i) => {
-          const hash: string = await zoraGiftContract.getIpfsHash(i);
-          return hash;
+          const hash = await zoraGiftContract.getIpfsHash(i);
+          return { id: i, ipfsHash: hash };
         })
       );
 
-      console.log("ipfsHashes", ipfsHashes);
+      console.log("gifts", gifts);
 
-      const ipfsData = await fetchIpfsData(ipfsHashes);
+      const ipfsData = await fetchIpfsData(gifts);
       setCreations(ipfsData);
 
       if (account) {
         const accountLower = account.toLowerCase();
         const myCreations = ipfsData.filter(
           (creation) =>
-            creation.ownerAddress &&
-            creation.ownerAddress.toLowerCase() === accountLower
+            creation.createdBy &&
+            creation.createdBy.toLowerCase() === accountLower
         );
         setMyCreations(myCreations);
 
         const redeemableCreations = ipfsData.filter(
           (creation) =>
-            creation.recipientAddress &&
-            creation.recipientAddress.toLowerCase() === accountLower
+            creation.walletAddress &&
+            creation.walletAddress.toLowerCase() === accountLower
         );
         setRedeemableCreations(redeemableCreations);
       }
     } catch (err) {
       console.error("Error fetching creations:", err);
+      setError("Failed to fetch creations. Please try again later.");
     } finally {
       setLoadingCreations(false);
     }
@@ -122,6 +140,19 @@ export default function Gifts() {
     };
 
     checkWalletConnection();
+
+    // Listen for account changes
+    if (typeof window.ethereum !== "undefined") {
+      window.ethereum.on("accountsChanged", (accounts: string[]) => {
+        if (accounts.length > 0) {
+          setAccount(accounts[0]);
+        } else {
+          setAccount(null);
+        }
+        // Refresh the creations when account changes
+        getCreations();
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -149,49 +180,55 @@ export default function Gifts() {
 
           {/* All Gifts */}
           <TabsContent value="all-gifts">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
-              {loadingCreations && (
-                <div className="col-span-full flex flex-col items-center justify-center mt-6">
-                  <LoaderCircle size={32} className="animate-spin" />
+            {loadingCreations ? (
+              <div className="flex flex-col items-center justify-center mt-6">
+                <Loader2 className="animate-spin mb-2" size={32} />
+                <p className="text-gray-500">Loading gifts...</p>
+              </div>
+            ) : error ? (
+              <div className="text-center mt-6">
+                <p className="text-red-500">{error}</p>
+              </div>
+            ) : creations && creations.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
+                {creations.map((creation, index) => (
+                  <GiftCard key={index} gift={creation} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center mt-6">
+                <div className="text-2xl font-semibold text-gray-500">
+                  No gifts here.
                 </div>
-              )}
-              {creations && creations.length > 0 ? (
-                creations.map((creation, index) => (
-                  <CreationCard
-                    key={index}
-                    creation={creation}
-                    alt={`Image for gift ${creation.giftName}`} // Ensure alt text is provided
-                  />
-                ))
-              ) : (
-                <div className="col-span-full text-center mt-6">
-                  <div className="text-2xl font-semibold text-gray-500">
-                    No gifts here.
-                  </div>
-                  <Link href="/gift">
-                    <Button className="px-16 mt-4">Start Gifting</Button>
-                  </Link>
-                </div>
-              )}
-            </div>
+                <Link href="/gift">
+                  <Button className="px-16 mt-4">Start Gifting</Button>
+                </Link>
+              </div>
+            )}
           </TabsContent>
 
           {/* Gifts by You */}
           <TabsContent value="gifts-by-you">
             {loadedAccount && !account && <RequireAuthPlaceholder />}
             {account && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
-                {loadingCreations && (
-                  <div className="col-span-full flex flex-col items-center justify-center mt-6">
-                    <LoaderCircle size={32} className="animate-spin" />
+              <>
+                {loadingCreations ? (
+                  <div className="flex flex-col items-center justify-center mt-6">
+                    <Loader2 className="animate-spin mb-2" size={32} />
+                    <p className="text-gray-500">Loading your gifts...</p>
                   </div>
-                )}
-                {myCreations && myCreations.length > 0 ? (
-                  myCreations.map((creation, index) => (
-                    <CreationCard key={index} creation={creation} />
-                  ))
+                ) : error ? (
+                  <div className="text-center mt-6">
+                    <p className="text-red-500">{error}</p>
+                  </div>
+                ) : myCreations && myCreations.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
+                    {myCreations.map((creation, index) => (
+                      <GiftCard key={index} gift={creation} />
+                    ))}
+                  </div>
                 ) : (
-                  <div className="col-span-full text-center mt-6">
+                  <div className="text-center mt-6">
                     <div className="text-2xl font-semibold text-gray-500">
                       No gifts created by you.
                     </div>
@@ -200,7 +237,7 @@ export default function Gifts() {
                     </Link>
                   </div>
                 )}
-              </div>
+              </>
             )}
           </TabsContent>
 
@@ -208,24 +245,32 @@ export default function Gifts() {
           <TabsContent value="redeem-yours">
             {loadedAccount && !account && <RequireAuthPlaceholder />}
             {account && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
-                {loadingCreations && (
-                  <div className="col-span-full flex flex-col items-center justify-center mt-6">
-                    <LoaderCircle size={32} className="animate-spin" />
+              <>
+                {loadingCreations ? (
+                  <div className="flex flex-col items-center justify-center mt-6">
+                    <Loader2 className="animate-spin mb-2" size={32} />
+                    <p className="text-gray-500">
+                      Loading your gifts to redeem...
+                    </p>
                   </div>
-                )}
-                {redeemableCreations && redeemableCreations.length > 0 ? (
-                  redeemableCreations.map((creation, index) => (
-                    <CreationCard key={index} creation={creation} />
-                  ))
+                ) : error ? (
+                  <div className="text-center mt-6">
+                    <p className="text-red-500">{error}</p>
+                  </div>
+                ) : redeemableCreations && redeemableCreations.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
+                    {redeemableCreations.map((creation, index) => (
+                      <GiftCard key={index} gift={creation} />
+                    ))}
+                  </div>
                 ) : (
-                  <div className="col-span-full text-center mt-6">
+                  <div className="text-center mt-6">
                     <div className="text-2xl font-semibold text-gray-500">
                       No gifts to redeem.
                     </div>
                   </div>
                 )}
-              </div>
+              </>
             )}
           </TabsContent>
         </Tabs>
