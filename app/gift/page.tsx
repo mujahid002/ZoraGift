@@ -16,12 +16,6 @@ import { ethers } from "ethers";
 import { Loader2 } from "lucide-react"; // Import the Loader2 icon
 import { handleUpload } from "@/lib/upload";
 
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
-
 const GiftForm: React.FC = () => {
   const [to, setto] = useState("");
   const [giftName, setGiftName] = useState("");
@@ -130,46 +124,46 @@ const GiftForm: React.FC = () => {
     }
   };
 
-  const switchToZoraSepoliaTestnet = async () => {
-    const { ethereum } = window;
+  // const switchToZoraSepoliaTestnet = async () => {
+  //   const { ethereum } = window;
 
-    if (!ethereum) {
-      alert(
-        "MetaMask is not installed. Please install MetaMask and try again."
-      );
-      return;
-    }
+  //   if (!ethereum) {
+  //     alert(
+  //       "MetaMask is not installed. Please install MetaMask and try again."
+  //     );
+  //     return;
+  //   }
 
-    try {
-      await ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: ZORA_TESTNET_PARAMS.chainId }],
-      });
-      setIsCorrectNetwork(true);
-    } catch (switchError: any) {
-      if (switchError.code === 4902) {
-        try {
-          await ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [ZORA_TESTNET_PARAMS],
-          });
-          setIsCorrectNetwork(true);
-        } catch (addError) {
-          console.error(
-            "Failed to add the Zora Sepolia Testnet network:",
-            addError
-          );
-          alert("Failed to add the Zora Sepolia Testnet network.");
-        }
-      } else {
-        console.error(
-          "Failed to switch to the Zora Sepolia Testnet network:",
-          switchError
-        );
-        alert("Failed to switch to the Zora Sepolia Testnet network.");
-      }
-    }
-  };
+  //   try {
+  //     await ethereum.request({
+  //       method: "wallet_switchEthereumChain",
+  //       params: [{ chainId: ZORA_TESTNET_PARAMS.chainId }],
+  //     });
+  //     setIsCorrectNetwork(true);
+  //   } catch (switchError: any) {
+  //     if (switchError.code === 4902) {
+  //       try {
+  //         await ethereum.request({
+  //           method: "wallet_addEthereumChain",
+  //           params: [ZORA_TESTNET_PARAMS],
+  //         });
+  //         setIsCorrectNetwork(true);
+  //       } catch (addError) {
+  //         console.error(
+  //           "Failed to add the Zora Sepolia Testnet network:",
+  //           addError
+  //         );
+  //         alert("Failed to add the Zora Sepolia Testnet network.");
+  //       }
+  //     } else {
+  //       console.error(
+  //         "Failed to switch to the Zora Sepolia Testnet network:",
+  //         switchError
+  //       );
+  //       alert("Failed to switch to the Zora Sepolia Testnet network.");
+  //     }
+  //   }
+  // };
 
   const isValidEthAddress = (address: string): boolean => {
     return /^0x[a-fA-F0-9]{40}$/.test(address);
