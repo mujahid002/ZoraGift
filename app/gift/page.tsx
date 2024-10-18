@@ -23,7 +23,7 @@ declare global {
 }
 
 const GiftForm: React.FC = () => {
-  const [walletAddress, setWalletAddress] = useState("");
+  const [to, setto] = useState("");
   const [giftName, setGiftName] = useState("");
   const [occasionType, setOccasionType] = useState("");
   const [description, setDescription] = useState("");
@@ -178,7 +178,7 @@ const GiftForm: React.FC = () => {
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!isValidEthAddress(walletAddress)) {
+    if (!isValidEthAddress(to)) {
       alert("Invalid Ethereum address.");
       return;
     }
@@ -221,7 +221,7 @@ const GiftForm: React.FC = () => {
 
   const handleRegenerate = async () => {
     // Validate inputs similar to handleGenerate
-    if (!isValidEthAddress(walletAddress)) {
+    if (!isValidEthAddress(to)) {
       alert("Invalid Ethereum address.");
       return;
     }
@@ -274,11 +274,12 @@ const GiftForm: React.FC = () => {
         name: giftName || "Special ZoraGift",
         description: description || "A special gift for you.",
         occasionType: occasionType || "Special Day",
-        walletAddress: walletAddress,
+        to: to,
         amount: amount.toString(),
         timestamp: isInstantGift
-          ? new Date().getTime().toString()
-          : new Date(date).getTime().toString(),
+          ? new Date().getTime().toString() // Present timestamp in milliseconds
+          : new Date(date).getTime().toString(), // The timestamp of the selected date in milliseconds
+
         isInstantGift: isInstantGift,
         createdBy: signerAddress,
         image: generatedImageUrl,
@@ -297,12 +298,7 @@ const GiftForm: React.FC = () => {
         console.error("Error uploading to IPFS");
         throw new Error("Failed to upload the metadata to IPFS.");
       }
-
-      // Proceed with minting on Zora using the IPFS hash
-      const to = walletAddress;
-      const redemptionTimestamp = isInstantGift
-        ? 0
-        : new Date(date).getTime().toString();
+      const redemptionTimestamp = metadata.timestamp;
 
       const zoraGiftContract = await initializeContract();
 
@@ -362,7 +358,7 @@ const GiftForm: React.FC = () => {
           </h2>
           <Form.Root onSubmit={handleGenerate} className="space-y-6">
             {/* Recipient Wallet Address */}
-            <Form.Field name="walletAddress">
+            <Form.Field name="to">
               <div className="flex flex-col">
                 <Form.Label className="text-sm font-medium">
                   Recipient Wallet Address
@@ -370,8 +366,8 @@ const GiftForm: React.FC = () => {
                 <Form.Control asChild>
                   <input
                     type="text"
-                    value={walletAddress}
-                    onChange={(e) => setWalletAddress(e.target.value)}
+                    value={to}
+                    onChange={(e) => setto(e.target.value)}
                     className="border border-input bg-background rounded-md px-3 py-2 mt-1"
                     placeholder="0x..."
                   />
