@@ -12,7 +12,6 @@ import { Loader2 } from "lucide-react";
 
 import GiftCard from "@/components/nft/GiftCard";
 import { initializeContract } from "@/lib/constants";
-import { ethers } from "ethers";
 
 interface Creation {
   id: number;
@@ -25,7 +24,6 @@ interface Creation {
   timestamp: string;
   createdBy: string;
   image: string;
-  [key: string]: any;
 }
 
 export default function Gifts() {

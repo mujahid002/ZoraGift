@@ -1,9 +1,8 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import AppBar from "../components/layout/AppBar";
 import { Button } from "../components/ui/button";
 import Link from "next/link";
-import Image from "next/image";
 import {
   Card,
   CardHeader,
@@ -34,32 +33,6 @@ const LogoSVG = () => {
 };
 
 const Home = () => {
-  const [creations, setCreations] = useState([]);
-  const [loadingCreations, setLoadingCreations] = useState(false);
-  const [account, setAccount] = useState(null);
-  const [loadedAccount, setLoadedAccount] = useState(false);
-
-  const getCreations = async () => {
-    setLoadingCreations(true);
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/creations`,
-      {
-        next: { revalidate: 5 },
-      }
-    );
-    const data = await res.json();
-    setCreations(data);
-    setLoadingCreations(false);
-  };
-
-  useEffect(() => {
-    const userJson = localStorage.getItem("user");
-    const user = userJson ? JSON.parse(userJson) : null;
-    setLoadedAccount(true);
-    setAccount(user);
-    getCreations();
-  }, []);
-
   return (
     <>
       <AppBar />
