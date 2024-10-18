@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 import { ethers } from "ethers";
-import { initializeContract } from "@/lib/constants";
+import { getSigner, initializeContract } from "@/lib/constants";
+import { Loader2 } from "lucide-react"; // Import Loader2 for loading animations
 
 declare global {
   interface Window {
@@ -21,7 +22,7 @@ declare global {
 interface Gift {
   id: number;
   ipfsHash: string;
-  walletAddress: string;
+  to: string; // Ensure this is the recipient's address
   name: string;
   occasionType: string;
   description: string;
@@ -35,8 +36,9 @@ export default function GiftCard({ gift }: { gift: Gift }) {
   const [contributionAmount, setContributionAmount] = React.useState("");
   const [account, setAccount] = React.useState<string | null>(null);
   const [isRedeemed, setIsRedeemed] = React.useState<boolean>(false);
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [isExpired, setIsExpired] = React.useState<boolean>(false);
+  const [isContributing, setIsContributing] = React.useState<boolean>(false);
+  const [isRedeeming, setIsRedeeming] = React.useState<boolean>(false);
 
   // Get connected account
   React.useEffect(() => {
@@ -63,7 +65,7 @@ export default function GiftCard({ gift }: { gift: Gift }) {
 
   // Check if gift is expired
   React.useEffect(() => {
-    const endTime = new Date(gift.timestamp);
+    const endTime = new Date(parseFloat(gift.timestamp));
     const currentTime = new Date();
     setIsExpired(currentTime > endTime);
   }, [gift.timestamp]);
@@ -71,7 +73,7 @@ export default function GiftCard({ gift }: { gift: Gift }) {
   // Check if gift has been redeemed
   React.useEffect(() => {
     const checkRedeemedStatus = async () => {
-      if (!gift || !account) return;
+      if (!gift) return;
 
       try {
         const zoraGiftContract = await initializeContract();
@@ -80,42 +82,108 @@ export default function GiftCard({ gift }: { gift: Gift }) {
           return;
         }
 
-        // Call the contract function to check if the gift is redeemed
-        const redeemed = await zoraGiftContract.isRedeemed(gift.id);
-        setIsRedeemed(redeemed);
+        // Assuming there is a function isGiftRedeemed(tokenId) that returns a boolean
+        const amount = await zoraGiftContract.getCollectedAmount(gift.id);
+        amount > 0 ? setIsRedeemed(true) : setIsRedeemed(false);
       } catch (error) {
         console.error("Error checking redeemed status:", error);
-      } finally {
-        setIsLoading(false);
       }
     };
     checkRedeemedStatus();
-  }, [gift, account]);
+  }, [gift]);
 
   const handleContribute = async () => {
-    // Implement the logic to contribute ETH to the gift
-    alert(`Contributed ${contributionAmount} ETH to gift ID ${gift.id}`);
+    try {
+      setIsContributing(true);
+
+      // Validate contribution amount
+      if (!contributionAmount || parseFloat(contributionAmount) <= 0) {
+        alert("Please enter a valid contribution amount.");
+        setIsContributing(false);
+        return;
+      }
+
+      // Get the signer
+      const signer = await getSigner();
+      if (!signer) {
+        alert("Please connect your wallet.");
+        setIsContributing(false);
+        return;
+      }
+
+      // Initialize the contract with the signer
+      const zoraGiftContract = await initializeContract();
+      if (!zoraGiftContract) {
+        console.error("ZoraGift contract not initialized.");
+        setIsContributing(false);
+        return;
+      }
+
+      // Parse the contribution amount to Ether
+      const contributionValue = ethers.parseEther(contributionAmount);
+
+      // Send the transaction
+      const tx = await zoraGiftContract.addContribution(gift.id, {
+        value: contributionValue,
+      });
+
+      console.log("Transaction sent:", tx);
+
+      // Wait for the transaction to be mined
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed:", receipt);
+
+      alert(`Contributed ${contributionAmount} ETH to gift ID ${gift.id}`);
+      setContributionAmount(""); // Reset the input field
+    } catch (error) {
+      console.error("Error contributing to gift:", error);
+      alert("Failed to contribute to the gift. " + error);
+    } finally {
+      setIsContributing(false);
+    }
   };
 
   const handleRedeem = async () => {
     try {
-      setIsLoading(true);
+      setIsRedeeming(true);
+
+      // Get the signer and connected account
+      const signer = await getSigner();
+      const account = await signer?.getAddress();
+
+      // Initialize the contract with the signer
       const zoraGiftContract = await initializeContract();
       if (!zoraGiftContract) {
         console.error("Contract not initialized");
+        setIsRedeeming(false);
+        return;
+      }
+
+      const tokenId = gift.id;
+
+      // Check token ownership
+      const owner = await zoraGiftContract.ownerOf(tokenId);
+      if (owner.toLowerCase() !== account?.toLowerCase()) {
+        alert("You are not the owner of this token.");
+        setIsRedeeming(false);
         return;
       }
 
       // Call the redeem function on the contract
-      const tx = await zoraGiftContract.redeemGift(gift.id);
-      await tx.wait();
+      const tx = await zoraGiftContract.redeemGift(tokenId);
+      console.log("Transaction sent:", tx);
+
+      // Wait for the transaction to be mined
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed:", receipt);
+
       alert(`Gift ID ${gift.id} redeemed successfully!`);
       setIsRedeemed(true);
     } catch (error) {
       console.error("Error redeeming gift:", error);
-      alert("Failed to redeem the gift.");
+      alert("Failed to redeem the gift. " + error);
     } finally {
-      setIsLoading(false);
+      setIsRedeeming(false);
     }
   };
 
@@ -132,10 +200,7 @@ export default function GiftCard({ gift }: { gift: Gift }) {
           />
           <h3 className="text-lg font-semibold mt-2">Name: {gift.name}</h3>
           <p className="text-sm text-gray-500">
-            To:{" "}
-            {gift.walletAddress.slice(0, 6) +
-              "..." +
-              gift.walletAddress.slice(-4)}
+            To: {gift.to.slice(0, 6) + "..." + gift.to.slice(-4)}
           </p>
           <p className="text-sm text-gray-500">
             Occasion Type: {gift.occasionType}
@@ -144,27 +209,33 @@ export default function GiftCard({ gift }: { gift: Gift }) {
             Total Amount: {gift.amount} ETH
           </p>
           <p className="text-sm text-gray-500">
-            End Time: {new Date(gift.timestamp).toLocaleString()}
+            End Time: {new Date(parseFloat(gift.timestamp)).toLocaleString()}
           </p>
         </div>
       </Link>
-      {isLoading ? (
-        <p className="text-sm text-gray-500 mt-4">Loading...</p>
-      ) : account &&
-        account.toLowerCase() === gift.walletAddress.toLowerCase() ? (
+      {account && account.toLowerCase() === gift.to.toLowerCase() ? (
         // If the connected account is the recipient
         <div className="mt-4">
           <Button
             onClick={handleRedeem}
             className="w-full"
-            disabled={isRedeemed || !isExpired}
+            disabled={isRedeemed || !isExpired || isRedeeming}
           >
-            {isRedeemed ? "Already Redeemed" : "Redeem"}
+            {isRedeeming ? (
+              <>
+                <Loader2 className="animate-spin mr-2" size={20} />
+                Redeeming...
+              </>
+            ) : isRedeemed ? (
+              "Already Redeemed"
+            ) : (
+              "Redeem"
+            )}
           </Button>
           {!isExpired && !isRedeemed && (
             <p className="text-sm text-gray-500 mt-2">
               You can redeem this gift after{" "}
-              {new Date(gift.timestamp).toLocaleString()}
+              {new Date(parseFloat(gift.timestamp)).toLocaleString()}
             </p>
           )}
         </div>
@@ -177,8 +248,19 @@ export default function GiftCard({ gift }: { gift: Gift }) {
             value={contributionAmount}
             onChange={(e) => setContributionAmount(e.target.value)}
           />
-          <Button onClick={handleContribute} className="mt-2 w-full">
-            Contribute
+          <Button
+            onClick={handleContribute}
+            className="mt-2 w-full"
+            disabled={isContributing}
+          >
+            {isContributing ? (
+              <>
+                <Loader2 className="animate-spin mr-2" size={20} />
+                Contributing...
+              </>
+            ) : (
+              "Contribute"
+            )}
           </Button>
         </div>
       ) : (
