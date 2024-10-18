@@ -183,13 +183,6 @@ contract ZoraGift is
         if (!exists(tokenId)) revert ZoraGift__TokenDoesNotExist();
         if (ownerOf(tokenId) != _msgSender()) revert ZoraGift__NotTokenOwner();
 
-        uint64 redemptionTimestamp = s_tokenIdToRedemptionTimestamp[tokenId];
-
-        // Allow redemption only if current time >= redemptionTimestamp, or if redemptionTimestamp is 0 (immediately redeemable)
-        if (redemptionTimestamp != 0 && block.timestamp < redemptionTimestamp) {
-            revert ZoraGift__NotRedeemable();
-        }
-
         uint256 totalAmount = getTotalContributedAmount(tokenId);
         if (totalAmount == 0) revert ZoraGift__AlreadyRedeemed();
 
@@ -285,6 +278,12 @@ contract ZoraGift is
     /// @return The next tokenId.
     function getNextTokenId() external view returns (uint256) {
         return s_nextTokenId;
+    }
+
+    function getRedemtionTimeForTokenId(
+        uint256 tokenId
+    ) external view returns (uint64) {
+        return s_tokenIdToRedemptionTimestamp[tokenId];
     }
 
     /// @notice Pauses all token transfers.
