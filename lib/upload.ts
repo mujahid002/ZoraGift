@@ -25,7 +25,7 @@ export interface Metadata {
     name: string;
     description: string;
     occasionType: string;
-    walletAddress: string;
+    to: string;
     amount: string;
     timestamp: string;
     isInstantGift: boolean;

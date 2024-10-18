@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 
 // Contracts
-export const ZORAGIFT_ADDRESS: string = "0xE2E39B1A5eFe07743F9E0E8408F1B7aAB6B7f832";
+export const ZORAGIFT_ADDRESS: string = "0xc01C4824339814edA70EB4639d6A7Ad23629f009";
 export const ZORAGIFT_ABI = [
     {
         "inputs": [],
@@ -605,6 +605,25 @@ export const ZORAGIFT_ABI = [
                 "internalType": "uint256",
                 "name": "",
                 "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "tokenId",
+                "type": "uint256"
+            }
+        ],
+        "name": "getRedemtionTimeForTokenId",
+        "outputs": [
+            {
+                "internalType": "uint64",
+                "name": "",
+                "type": "uint64"
             }
         ],
         "stateMutability": "view",
