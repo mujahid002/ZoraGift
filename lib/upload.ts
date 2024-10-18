@@ -26,8 +26,8 @@ export interface Metadata {
     description: string;
     occasionType: string;
     walletAddress: string;
-    amount: number;
-    timestamp: number;
+    amount: string;
+    timestamp: string;
     isInstantGift: boolean;
     createdBy?: string;
     image: string | null;
@@ -54,7 +54,7 @@ export const handleUpload = async (metadata: Metadata): Promise<string> => {
 
         // Append Pinata metadata and options if needed
         const pinataMetadata = {
-            name: `ZoraGift-${new Date().getTime().toString().slice(-1, -5)}`,
+            name: `ZG-${new Date().getTime().toString().slice(-1, -5)}`,
         };
         formData.append('pinataMetadata', JSON.stringify(pinataMetadata));
 
