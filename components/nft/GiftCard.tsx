@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ethers } from "ethers";
 import { getSigner, initializeContract } from "@/lib/constants";
 import { Loader2 } from "lucide-react"; // Import Loader2 for loading animations
+import { Input } from "../ui/input";
 
 interface Gift {
   id: number;
@@ -239,7 +240,7 @@ export default function GiftCard({ gift }: { gift: Gift }) {
       ) : !isExpired ? (
         // Show contribute option if gift is not expired
         <div className="mt-4">
-          <input
+          <Input
             type="number"
             placeholder="Amount in ETH"
             value={contributionAmount}

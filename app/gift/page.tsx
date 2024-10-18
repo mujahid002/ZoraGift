@@ -15,6 +15,7 @@ import { getSigner, initializeContract } from "@/lib/constants";
 import { ethers } from "ethers";
 import { Loader2 } from "lucide-react"; // Import the Loader2 icon
 import { handleUpload } from "@/lib/upload";
+import { Input } from "@/components/ui/input";
 
 const GiftForm: React.FC = () => {
   const [to, setto] = useState("");
@@ -439,7 +440,7 @@ const GiftForm: React.FC = () => {
                     Amount in ETH
                   </Form.Label>
                   <Form.Control asChild>
-                    <input
+                    <Input
                       type="number"
                       step="0.001"
                       min="0.001"
