@@ -150,11 +150,11 @@ export default function Gifts() {
         getCreations();
       });
     }
-  }, [getCreations]);
+  }, []);
 
   useEffect(() => {
     getCreations();
-  }, [account, getCreations]);
+  }, [account]);
 
   return (
     <div>

@@ -61,7 +61,7 @@ const AccountMenu = () => {
         window.ethereum.removeListener("chainChanged", handleChainChanged);
       }
     };
-  }, [handleAccountsChanged, handleChainChanged]);
+  }, []);
 
   const checkNetwork = async () => {
     if (typeof window.ethereum !== "undefined") {

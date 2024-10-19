@@ -40,7 +40,7 @@ const ConnectButton: React.FC<Props> = ({ setAccount }) => {
         window.ethereum.removeListener("chainChanged", handleChainChanged);
       }
     };
-  }, [handleAccountsChanged, handleChainChanged]);
+  }, []);
 
   const handleAccountsChanged = (accounts: string[]) => {
     if (accounts.length > 0) {

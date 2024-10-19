@@ -99,7 +99,7 @@ export default function GiftDetails({ params }: { params: { id: string } }) {
     if (id) {
       fetchGiftDetails();
     }
-  }, [id, fetchGiftDetails]);
+  }, [id]);
 
   if (loading || !giftDetails) {
     return (

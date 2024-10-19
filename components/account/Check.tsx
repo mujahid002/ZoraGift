@@ -109,7 +109,7 @@ export function Check() {
       await checkWalletConnection();
     };
     initialize();
-  }, [checkWalletConnection]);
+  }, []);
 
   return (
     <div className="mx-4 flex p-24 shrink-0 items-center justify-center rounded-md border border-dashed">
