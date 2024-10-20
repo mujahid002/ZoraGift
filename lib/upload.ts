@@ -66,7 +66,7 @@ export const handleUpload = async (metadata: Metadata): Promise<string> => {
 
         // Append Pinata metadata and options if needed
         const pinataMetadata = {
-            name: `ZG-${new Date().getTime().toString().slice(-1, -5)}`,
+            name: `ZG-${new Date().getTime().toString()}`,
         };
         formData.append('pinataMetadata', JSON.stringify(pinataMetadata));
 
