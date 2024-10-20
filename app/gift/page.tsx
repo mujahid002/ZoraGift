@@ -522,6 +522,8 @@ const GiftForm: React.FC = () => {
         {generatedImageUrl ? (
           <Image
             src={generatedImageUrl}
+            width={300}
+            height={250}
             alt="Generated Gift"
             className="w-full"
           />
