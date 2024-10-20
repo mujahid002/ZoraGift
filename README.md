@@ -14,7 +14,7 @@ In summary, ZoraGift offers a creative and personalized way to transfer crypto a
 
 # ZoraGift Flow
 
-![ZoraGift Flow](image.png)
+![ZoraGift Flow](./Gallery/flowchart.png)
 
 # Contract
 
