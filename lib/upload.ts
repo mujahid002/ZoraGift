@@ -1,37 +1,9 @@
-import { PinataSDK } from "pinata";
+// import { PinataSDK } from "pinata";
+
+import { PinataSDK } from "pinata-web3";
 
 import axios from 'axios';
 import FormData from 'form-data';
-
-export interface data {
-    name: string;
-    description: string,
-    occasionType: string,
-    to: string,
-    amount: string,
-    timestamp: string,
-
-    isInstantGift: boolean,
-    createdBy: string,
-    image: string,
-    content: {
-        mime: string,
-        uri: string,
-    },
-}
-
-export const Upload = async (data: data) => {
-    const pinata = new PinataSDK({
-        pinataJwt: process.env.NEXT_PUBLIC_PINATA_JWT,
-        pinataGateway: "white-underlying-coral-820.mypinata.cloud",
-    });
-
-    const res = await pinata.upload.json({
-        data
-    })
-
-    return res;
-}
 
 export interface Metadata {
     name: string;
@@ -50,19 +22,56 @@ export interface Metadata {
 }
 
 
+export const Upload = async (data: Metadata) => {
+    try {
+        // Initialize the Pinata SDK
+        const pinata = new PinataSDK({
+            pinataJwt: process.env.NEXT_PUBLIC_PINATA_JWT!,
+            pinataGateway: "white-underlying-coral-820.mypinata.cloud",
+        });
+
+        // Convert the metadata object to a JSON string
+        const jsonString = JSON.stringify(data);
+
+        // Create a File object from the JSON string
+        // Note: The File API is available in browser environments
+        const file = new File(
+            [jsonString],
+            `ZG-${new Date().getTime().toString()}.json`,
+            { type: "application/json" }
+        );
+
+        // Upload the file to Pinata
+        const upload = await pinata.upload.file(file);
+
+        console.log(upload);
+
+        // Return the upload result
+        return upload.IpfsHash;
+    } catch (error) {
+        console.error(error);
+        throw new Error("Unable to upload metadata");
+    }
+};
+
+
+
 export const handleUpload = async (metadata: Metadata): Promise<string> => {
     try {
         // Convert metadata to JSON string
         const jsonString = JSON.stringify(metadata);
 
-        // Create a new Blob from the JSON string
-        const fileBlob = new Blob([jsonString], { type: 'application/json' });
+        // Create a Buffer from the JSON string
+        const fileBuffer = Buffer.from(jsonString, 'utf-8');
 
         // Create a new FormData instance
         const formData = new FormData();
 
         // Append the file to the form data
-        formData.append('file', fileBlob, 'metadata.json');
+        formData.append('file', fileBuffer, {
+            filename: `ZG-${new Date().getDate().toString()}`,
+            contentType: 'application/json',
+        });
 
         // Append Pinata metadata and options if needed
         const pinataMetadata = {
@@ -75,13 +84,21 @@ export const handleUpload = async (metadata: Metadata): Promise<string> => {
         };
         formData.append('pinataOptions', JSON.stringify(pinataOptions));
 
+        // Get headers from formData
+        const headers = {
+            ...formData.getHeaders(),
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_PINATA_JWT}`, // Use server-side env variable
+        };
+
         // Send the POST request to Pinata
-        const res = await axios.post('https://api.pinata.cloud/pinning/pinFileToIPFS', formData, {
-            maxContentLength: Infinity, // Prevent axios from throwing error due to large content
-            headers: {
-                Authorization: `Bearer ${process.env.NEXT_PUBLIC_PINATA_JWT}`, // Ensure this is server-side only
-            },
-        });
+        const res = await axios.post(
+            'https://api.pinata.cloud/pinning/pinFileToIPFS',
+            formData,
+            {
+                maxContentLength: Infinity,
+                headers: headers,
+            }
+        );
 
         console.log(res.data);
         return res.data.IpfsHash;
@@ -90,6 +107,7 @@ export const handleUpload = async (metadata: Metadata): Promise<string> => {
         throw new Error('Unable to upload metadata');
     }
 };
+
 
 
 

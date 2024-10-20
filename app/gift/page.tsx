@@ -13,7 +13,7 @@ import { ZORA_TESTNET_PARAMS } from "@/lib/networks";
 import { getSigner, initializeContract } from "@/lib/constants";
 import { ethers } from "ethers";
 import { Loader2 } from "lucide-react"; // Import the Loader2 icon
-import { handleUpload } from "@/lib/upload";
+import { handleUpload, Upload } from "@/lib/upload";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import { Check } from "@/components/account/Check";
@@ -287,8 +287,8 @@ const GiftForm: React.FC = () => {
 
       console.log("Metadata:", metadata);
 
-      // Upload metadata JSON via handleUpload (calls the API route)
-      const ipfsHash = await handleUpload(metadata);
+      // Upload metadata JSON via handleUpload
+      const ipfsHash = await Upload(metadata);
 
       if (!ipfsHash) {
         console.error("Error uploading to IPFS");

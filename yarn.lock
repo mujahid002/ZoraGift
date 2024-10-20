@@ -5973,6 +5973,16 @@ pify@^2.3.0:
   resolved "https://registry.yarnpkg.com/pify/-/pify-2.3.0.tgz#ed141a6ac043a849ea588498e7dca8b15330e90c"
   integrity sha512-udgsAY+fTnvv7kI7aaxbqwWNb0AHiB0qBO89PZKPkoTmGOgdbrHDKD+0B2X4uTfJ/FT1R09r9gTsjUjNJotuog==
 
+pinata-web3@^0.5.1:
+  version "0.5.1"
+  resolved "https://registry.yarnpkg.com/pinata-web3/-/pinata-web3-0.5.1.tgz#f5560247a485f122bdaabf2184fc1e58ae24037a"
+  integrity sha512-iPrDARwf+5PNxXbXzjskQji6LvBUqk0uFzchyhMjYArxJ3/4a+iIhh+E50lj9a8ceYtaD6hfu4ZhWAfUW9gifA==
+  dependencies:
+    axios "^1.7.7"
+    form-data "^4.0.0"
+    is-ipfs "^8.0.4"
+    node-fetch "^3.3.1"
+
 pinata@^1.5.0:
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/pinata/-/pinata-1.5.0.tgz#be94cbda24e1242fae41fa2183af6fd71ce43437"
