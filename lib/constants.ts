@@ -1,7 +1,8 @@
 import { ethers } from "ethers";
 
 // Contracts
-export const ZORAGIFT_ADDRESS: string = "0xc01C4824339814edA70EB4639d6A7Ad23629f009";
+export const ZORAGIFT_ADDRESS: string = "0xbF98f9Dc69d10F5E296f7fF80C2909C85d066a0f";
+// export const ZORAGIFT_ADDRESS: string = "0xc01C4824339814edA70EB4639d6A7Ad23629f009";
 export const ZORAGIFT_ABI = [
     {
         "inputs": [],
