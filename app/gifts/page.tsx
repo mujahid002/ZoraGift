@@ -1,5 +1,3 @@
-// pages/gifts.tsx
-
 "use client";
 import Link from "next/link";
 import AppBar from "@/components/layout/AppBar";
@@ -10,20 +8,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 
 import GiftCard from "@/components/nft/GiftCard";
-import { initializeContract } from "@/lib/constants";
 import { Check } from "@/components/account/Check";
 
 interface Creation {
-  id: number;
-  ipfsHash: string;
-  to: string;
+  tokenId: string; // Assuming tokenId is a string
   name: string;
-  occasionType: string;
   description: string;
-  amount: string;
+  occasionType: string;
+  to: string;
+  amount: string[];
   timestamp: string;
-  createdBy: string;
+  createdBy: string[];
   image: string;
+  isInstantGift: boolean;
+  metadataUrl: string;
 }
 
 export default function Gifts() {
@@ -37,80 +35,37 @@ export default function Gifts() {
   const [loadedAccount, setLoadedAccount] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch IPFS data and include the id in each gift
-  const fetchIpfsData = async (
-    gifts: { id: number; ipfsHash: string }[]
-  ): Promise<Creation[]> => {
-    const ipfsData = await Promise.all(
-      gifts.map(async (gift) => {
-        try {
-          const response = await fetch(`https://ipfs.io/ipfs/${gift.ipfsHash}`);
-          if (!response.ok) throw new Error("Failed to fetch IPFS data");
-          const data = await response.json();
-          return { ...data, id: gift.id }; // Include the id
-        } catch (error) {
-          console.error(`Error fetching IPFS hash ${gift.ipfsHash}:`, error);
-          return null;
-        }
-      })
-    );
-    return ipfsData.filter((data): data is Creation => data !== null);
-  };
-
-  const getCreations = async () => {
+  const fetchAllGifts = async () => {
     setLoadingCreations(true);
     setError(null);
 
     try {
-      const zoraGiftContract = await initializeContract();
-
-      if (!zoraGiftContract) {
-        console.error("ZoraGift contract not initialized.");
-        setError("Failed to initialize contract.");
-        return;
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/gifts`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch gifts from backend.");
       }
-
-      const presentTokenId = await zoraGiftContract.getNextTokenId();
-      const tokenId = Number(presentTokenId);
-
-      if (tokenId === 0) {
-        // No gifts have been created yet
-        setCreations([]);
-        setMyCreations([]);
-        setRedeemableCreations([]);
-        return;
-      }
-
-      const gifts = await Promise.all(
-        Array.from({ length: tokenId }, async (_, i) => {
-          const hash = await zoraGiftContract.getIpfsHash(i);
-          return { id: i, ipfsHash: hash };
-        })
-      );
-
-      console.log("gifts", gifts);
-
-      const ipfsData = await fetchIpfsData(gifts);
-      setCreations(ipfsData);
+      const data: Creation[] = await response.json();
+      setCreations(data);
 
       if (account) {
         const accountLower = account.toLowerCase();
-        const myCreations = ipfsData.filter(
-          (creation) =>
-            creation.createdBy &&
-            creation.createdBy.toLowerCase() === accountLower
+        const userCreations = data.filter(
+          (gift) =>
+            gift.createdBy &&
+            gift.createdBy.some(
+              (creator) => creator.toLowerCase() === accountLower
+            )
         );
-        setMyCreations(myCreations);
+        setMyCreations(userCreations);
 
-        const redeemableCreations = ipfsData.filter(
-          (creation) =>
-            creation.to && creation.to.toLowerCase() === accountLower
+        const userRedeemable = data.filter(
+          (gift) => gift.to && gift.to.toLowerCase() === accountLower
         );
-        setRedeemableCreations(redeemableCreations);
+        setRedeemableCreations(userRedeemable);
       }
     } catch (err) {
-      console.error("Error fetching creations:", err);
-      setError("Failed to fetch creations. Please try again later.");
+      console.error("Error fetching gifts:", err);
+      setError("Failed to fetch gifts. Please try again later.");
     } finally {
       setLoadingCreations(false);
     }
@@ -146,14 +101,13 @@ export default function Gifts() {
         } else {
           setAccount(null);
         }
-        // Refresh the creations when account changes
-        getCreations();
+        fetchAllGifts(); // Refresh gifts when account changes
       });
     }
   }, []);
 
   useEffect(() => {
-    getCreations();
+    fetchAllGifts();
   }, [account]);
 
   return (
@@ -188,8 +142,8 @@ export default function Gifts() {
               </div>
             ) : creations && creations.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
-                {creations.map((creation, index) => (
-                  <GiftCard key={index} gift={creation} />
+                {creations.map((creation) => (
+                  <GiftCard key={creation.tokenId} gift={creation} />
                 ))}
               </div>
             ) : (
@@ -220,8 +174,8 @@ export default function Gifts() {
                   </div>
                 ) : myCreations && myCreations.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
-                    {myCreations.map((creation, index) => (
-                      <GiftCard key={index} gift={creation} />
+                    {myCreations.map((creation) => (
+                      <GiftCard key={creation.tokenId} gift={creation} />
                     ))}
                   </div>
                 ) : (
@@ -256,8 +210,8 @@ export default function Gifts() {
                   </div>
                 ) : redeemableCreations && redeemableCreations.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
-                    {redeemableCreations.map((creation, index) => (
-                      <GiftCard key={index} gift={creation} />
+                    {redeemableCreations.map((creation) => (
+                      <GiftCard key={creation.tokenId} gift={creation} />
                     ))}
                   </div>
                 ) : (
