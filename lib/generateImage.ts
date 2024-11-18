@@ -25,21 +25,22 @@ const livepeer = new LivepeerCore({
 
 export async function generateImage(prompt: string): Promise<string> {
   const res = await generateTextToImage(livepeer, {
-    modelId:"SG161222/RealVisXL_V4.0_Lightning",
+    modelId: "black-forest-labs/FLUX.1-dev",
+    // modelId: "SG161222/RealVisXL_V4.0_Lightning",
     prompt,
   });
 
-// const res = await livepeer.generate.textToImage({
-//     prompt,
-//   });
+  // const res = await livepeer.generate.textToImage({
+  //     prompt,
+  //   });
 
   console.log(res)
 
-  if(!res.ok){
+  if (!res.ok) {
     console.error("Unable to Generate image")
   }
 
-  
+
 
   // Cast the response value to the expected type
   const responseValue = res.value?.imageResponse as unknown as TextToImageResponse;
