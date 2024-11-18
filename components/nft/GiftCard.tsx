@@ -1,29 +1,28 @@
-// components/nft/GiftCard.tsx
-
 "use client";
 import * as React from "react";
 import Link from "next/link";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 import { ethers } from "ethers";
 import { getSigner, initializeContract } from "@/lib/constants";
-import { Loader2 } from "lucide-react"; // Import Loader2 for loading animations
-import { Input } from "../ui/input";
+import { Loader2 } from "lucide-react"; // Loading animation
 import Image from "next/image";
 
 interface Gift {
-  id: number;
-  ipfsHash: string;
-  to: string;
+  tokenId: string; // Assuming tokenId is a string
   name: string;
-  occasionType: string;
   description: string;
-  amount: string;
+  occasionType: string;
+  to: string;
+  amount: string[];
   timestamp: string;
-  createdBy: string;
+  createdBy: string[];
   image: string;
+  isInstantGift: boolean;
+  metadataUrl: string;
 }
 
 export default function GiftCard({ gift }: { gift: Gift }) {
@@ -64,33 +63,6 @@ export default function GiftCard({ gift }: { gift: Gift }) {
     setIsExpired(currentTime > endTime);
   }, [gift.timestamp]);
 
-  // Check if gift has been redeemed
-  React.useEffect(() => {
-    const checkRedeemedStatus = async () => {
-      if (!gift) return;
-
-      try {
-        const zoraGiftContract = await initializeContract();
-        if (!zoraGiftContract) {
-          console.error("Contract not initialized");
-          return;
-        }
-
-        // Assuming there is a function isGiftRedeemed(tokenId) that returns a boolean
-        const amount = await zoraGiftContract.getCollectedAmount(gift.id);
-
-        if (amount > 0) {
-          setIsRedeemed(false);
-        } else {
-          setIsRedeemed(true);
-        }
-      } catch (error) {
-        console.error("Error checking redeemed status:", error);
-      }
-    };
-    checkRedeemedStatus();
-  }, [gift]);
-
   const handleContribute = async () => {
     try {
       setIsContributing(true);
@@ -110,6 +82,13 @@ export default function GiftCard({ gift }: { gift: Gift }) {
         return;
       }
 
+      const account = await signer.getAddress();
+      if (!account) {
+        alert("Unable to fetch account.");
+        setIsContributing(false);
+        return;
+      }
+
       // Initialize the contract with the signer
       const zoraGiftContract = await initializeContract();
       if (!zoraGiftContract) {
@@ -121,8 +100,8 @@ export default function GiftCard({ gift }: { gift: Gift }) {
       // Parse the contribution amount to Ether
       const contributionValue = ethers.parseEther(contributionAmount);
 
-      // Send the transaction
-      const tx = await zoraGiftContract.addContribution(gift.id, {
+      // Send the transaction to the smart contract
+      const tx = await zoraGiftContract.addContribution(gift.tokenId, {
         value: contributionValue,
       });
 
@@ -132,11 +111,34 @@ export default function GiftCard({ gift }: { gift: Gift }) {
       const receipt = await tx.wait();
       console.log("Transaction confirmed:", receipt);
 
-      alert(`Contributed ${contributionAmount} ETH to gift ID ${gift.id}`);
+      // Update the backend
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/gifts/${gift.tokenId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            amount: contributionAmount,
+            createdBy: account,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Failed to update the backend:", await response.text());
+        alert("Failed to update the backend.");
+        return;
+      }
+
+      alert(
+        `Contributed ${contributionAmount} ETH to gift tokenId ${gift.tokenId}`
+      );
       setContributionAmount(""); // Reset the input field
     } catch (error) {
       console.error("Error contributing to gift:", error);
-      alert("Failed to contribute to the gift. " + error);
+      alert("Failed to contribute to the gift.");
     } finally {
       setIsContributing(false);
     }
@@ -158,7 +160,7 @@ export default function GiftCard({ gift }: { gift: Gift }) {
         return;
       }
 
-      const tokenId = gift.id;
+      const tokenId = gift.tokenId;
 
       // Check token ownership
       const owner = await zoraGiftContract.ownerOf(tokenId);
@@ -176,7 +178,7 @@ export default function GiftCard({ gift }: { gift: Gift }) {
       const receipt = await tx.wait();
       console.log("Transaction confirmed:", receipt);
 
-      alert(`Gift ID ${gift.id} redeemed successfully!`);
+      alert(`Gift ID ${gift.tokenId} redeemed successfully!`);
       setIsRedeemed(true);
     } catch (error) {
       console.error("Error redeeming gift:", error);
@@ -188,7 +190,7 @@ export default function GiftCard({ gift }: { gift: Gift }) {
 
   return (
     <Card className="p-4">
-      <Link href={`/gift/${gift.id}`}>
+      <Link href={`/gift/${gift.tokenId}`}>
         <div className="cursor-pointer">
           <Image
             src={gift.image}
@@ -213,7 +215,6 @@ export default function GiftCard({ gift }: { gift: Gift }) {
         </div>
       </Link>
       {account && account.toLowerCase() === gift.to.toLowerCase() ? (
-        // If the connected account is the recipient
         <div className="mt-4">
           <Button
             onClick={handleRedeem}
@@ -239,7 +240,6 @@ export default function GiftCard({ gift }: { gift: Gift }) {
           )}
         </div>
       ) : !isExpired ? (
-        // Show contribute option if gift is not expired
         <div className="mt-4">
           <Input
             type="number"
