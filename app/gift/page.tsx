@@ -261,74 +261,114 @@ const GiftForm: React.FC = () => {
     try {
       setIsMinting(true);
 
-      // Get the signer
+      // Get the signer and signer address
       const signer = await getSigner();
-      const signerAddress = await signer?.getAddress();
+      if (!signer) {
+        throw new Error(
+          "No signer available. Ensure you're connected to your wallet."
+        );
+      }
+
+      const signerAddress = await signer.getAddress();
+
+      // Determine the redemption timestamp
+      const redemptionTimestamp = isInstantGift
+        ? Date.now().toString() // Current timestamp for instant gift
+        : new Date(date).getTime().toString(); // Convert selected date to timestamp
+
+      // Initialize the contract
+      const zoraGiftContract = await initializeContract();
+      if (!zoraGiftContract) {
+        throw new Error(
+          "Contract not initialized. Please check your contract setup."
+        );
+      }
+
+      // Sending the gift transaction
+      console.log("Preparing to send gift...");
+      const trx = await zoraGiftContract.sendGift(
+        to,
+        redemptionTimestamp,
+        "ipfsHash",
+        {
+          value: ethers.parseEther(amount.toString()),
+        }
+      );
+
+      console.log("Transaction sent:", trx);
+
+      // Wait for the transaction to be mined
+      const receipt = await trx.wait();
+
+      console.log("Transaction confirmed:", receipt);
+
+      // Find the emitted event in the logs
+      const transferEvent = receipt.logs
+        .map((log: { topics: ReadonlyArray<string>; data: string }) =>
+          zoraGiftContract.interface.parseLog(log)
+        )
+        .find((parsedLog: { name: string }) => parsedLog.name === "Transfer");
+
+      if (!transferEvent) {
+        throw new Error("Failed to find Transfer event in transaction logs.");
+      }
+
+      const tokenId = transferEvent.args.tokenId.toString();
+
+      console.log(
+        `Token ID: ${tokenId} minted to ${
+          to || "Recipient Address"
+        } with transaction hash ${trx.hash}`
+      );
 
       // Create metadata object
       const metadata = {
+        tokenId: tokenId,
         name: giftName || "Special ZoraGift",
         description: description || "A special gift for you.",
-        occasionType: occasionType || "Special Day",
+        occasionType: occasionType || "Special Ocassion",
         to: to,
-        amount: amount.toString(),
-        timestamp: isInstantGift
-          ? new Date().getTime().toString() // Present timestamp in milliseconds
-          : new Date(date).getTime().toString(), // The timestamp of the selected date in milliseconds
-
+        amount: [amount.toString()],
+        timestamp: redemptionTimestamp,
         isInstantGift: isInstantGift,
-        createdBy: signerAddress,
+        createdBy: [signerAddress],
         image: generatedImageUrl,
         content: {
           mime: "image/jpeg",
           uri: generatedImageUrl,
         },
+        metadataUrl: `${process.env.NEXT_PUBLIC_API_URL}/gifts/${tokenId}`,
       };
 
-      console.log("Metadata:", metadata);
+      console.log("Metadata created:", metadata);
 
-      // Upload metadata JSON via handleUpload
-      const ipfsHash = await Upload(metadata);
+      // Post metadata to the backend
+      const metadataResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/store-gift`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(metadata),
+        }
+      );
 
-      if (!ipfsHash) {
-        console.error("Error uploading to IPFS");
-        throw new Error("Failed to upload the metadata to IPFS.");
-      }
-      const redemptionTimestamp = metadata.timestamp;
-
-      const zoraGiftContract = await initializeContract();
-
-      if (!zoraGiftContract) {
-        console.error("Contract not initialized");
-        return;
-      }
-
-      try {
-        // Sending the gift transaction
-        const trx = await zoraGiftContract.sendGift(
-          to,
-          redemptionTimestamp,
-          ipfsHash,
-          {
-            value: ethers.parseEther(amount.toString()), // Parse ETH to wei
-          }
+      if (!metadataResponse.ok) {
+        console.error(
+          "Failed to store metadata:",
+          await metadataResponse.text()
         );
-
-        console.log("Transaction sent:", trx);
-
-        // Wait for the transaction to be mined
-        await trx.wait();
-
-        console.log("Transaction confirmed:", trx);
-
-        setMintSuccess(true);
-      } catch (error) {
-        console.error("Error sending gift:", error);
-        alert("Failed to mint the NFT. Please try again.");
+        throw new Error("Failed to store metadata on the server.");
       }
+
+      console.log("Metadata stored successfully.");
+
+      setMintSuccess(true);
+      // alert("Gift minted successfully!");
     } catch (error) {
       console.error("Error in handleMint:", error);
-      alert("Failed to mint the NFT. Please try again.");
+      alert(`Error minting gift: ${error}`);
     } finally {
       setIsMinting(false);
     }
