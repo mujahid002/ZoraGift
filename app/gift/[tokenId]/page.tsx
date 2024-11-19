@@ -4,7 +4,8 @@ import AppBar from "@/components/layout/AppBar";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { initializeContract } from "@/lib/constants";
+import { Input } from "@/components/ui/input";
+import { getSigner, initializeContract } from "@/lib/constants";
 import { ethers } from "ethers";
 
 interface Gift {
@@ -34,6 +35,9 @@ export default function GiftDetails({
   const [giftDetails, setGiftDetails] = useState<Gift | null>(null);
   const [loading, setLoading] = useState(false);
   const [amountCollected, setAmountCollected] = useState<string>("");
+  const [contributionAmount, setContributionAmount] = useState<string>("");
+  const [isContributing, setIsContributing] = useState<boolean>(false);
+  const [account, setAccount] = useState<string | null>(null);
 
   const fetchGiftDetails = async () => {
     if (!tokenId) {
@@ -76,6 +80,81 @@ export default function GiftDetails({
       console.error("Error fetching gift details:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleContribute = async () => {
+    try {
+      setIsContributing(true);
+
+      // Validate contribution amount
+      if (!contributionAmount || parseFloat(contributionAmount) <= 0) {
+        alert("Please enter a valid contribution amount.");
+        setIsContributing(false);
+        return;
+      }
+
+      // Get the signer
+      const signer = await getSigner();
+      if (!signer) {
+        throw new Error(
+          "No signer available. Ensure you're connected to your wallet."
+        );
+      }
+      const accountAddress = await signer.getAddress();
+      setAccount(accountAddress);
+
+      // Initialize the contract
+      const zoraGiftContract = await initializeContract();
+      if (!zoraGiftContract) {
+        console.error("Contract not initialized.");
+        setIsContributing(false);
+        return;
+      }
+
+      // Parse the contribution amount
+      const contributionValue = ethers.parseEther(contributionAmount);
+
+      // Send the contribution transaction
+      const tx = await zoraGiftContract.addContribution(tokenId, {
+        value: contributionValue,
+      });
+
+      console.log("Transaction sent:", tx);
+
+      // Wait for the transaction to complete
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed:", receipt);
+
+      // Update the backend
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/gifts/${tokenId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            amount: contributionAmount,
+            createdBy: accountAddress,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Failed to update the backend:", await response.text());
+        alert("Failed to update the backend.");
+        return;
+      }
+
+      alert(`Contributed ${contributionAmount} ETH to gift tokenId ${tokenId}`);
+      setContributionAmount(""); // Reset input
+      fetchGiftDetails(); // Refresh gift details
+    } catch (error) {
+      console.error("Error contributing to gift:", error);
+      alert("Failed to contribute to the gift.");
+    } finally {
+      setIsContributing(false);
     }
   };
 
@@ -137,6 +216,28 @@ export default function GiftDetails({
                 <strong>Is Instant Gift:</strong>{" "}
                 {giftDetails.isInstantGift ? "True" : "False"}
               </p>
+              <div className="mt-4">
+                <Input
+                  type="number"
+                  placeholder="Amount in ETH"
+                  value={contributionAmount}
+                  onChange={(e) => setContributionAmount(e.target.value)}
+                />
+                <Button
+                  onClick={handleContribute}
+                  className="mt-2 w-full"
+                  disabled={isContributing}
+                >
+                  {isContributing ? (
+                    <>
+                      <Loader2 className="animate-spin mr-2" size={20} />
+                      Contributing...
+                    </>
+                  ) : (
+                    "Contribute"
+                  )}
+                </Button>
+              </div>
             </div>
             <div className="mt-6 flex justify-center space-x-4">
               <a
